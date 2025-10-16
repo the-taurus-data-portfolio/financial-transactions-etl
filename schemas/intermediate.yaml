@@ -1,0 +1,31 @@
+schema_name: "Intermediate Transaction Format Schema"
+description: "Universal intermediate schema for financial transactions, designed to be flexible for various source and target systems."
+file_details:
+  delimiter: ","
+  quote_char: "\""
+  decimal_separator: "."
+  date_format: "DD.MM.YYYY" # Keeping the original date format for consistency during intermediate stage
+
+fields:
+  - name: "TransactionDate"
+    type: "string" # Stored as string, will be parsed as date
+    description: "The date when the transaction occurred."
+    format: "DD.MM.YYYY"
+  - name: "Amount"
+    type: "float"
+    description: "The numeric value of the transaction. Positive for income, negative for expense."
+  - name: "Currency"
+    type: "string"
+    description: "The currency code of the transaction (e.g., 'EUR')."
+  - name: "Description"
+    type: "string"
+    description: "A detailed description of the transaction."
+  - name: "BudgetAccountNumber"
+    type: "string"
+    description: "The account number of the user's budget/main account."
+  - name: "OtherAccountName"
+    type: "string"
+    description: "The name of the counterparty (payee or payer) in the transaction."
+  - name: "TransactionID"
+    type: "string"
+    description: "A unique identifier for the transaction, if available from the source system."

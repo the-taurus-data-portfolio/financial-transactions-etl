@@ -1,0 +1,87 @@
+# schemas/swedbank_source.yaml
+schema_name: "Swedbank Estonia Source CSV Schema"
+description: "Schema for Swedbank Estonia CSV export files"
+file_details:
+  delimiter: ";"
+  decimal_separator: ","
+  date_format: "DD.MM.YYYY"
+  encoding: "utf-8"
+
+fields:
+  - name: "Kuupäev"
+    alias: "TransactionDate"
+    type: "string"
+    description: "Transaction date in DD.MM.YYYY format"
+    required: true
+
+  - name: "Summa"
+    alias: "Amount"
+    type: "string"
+    description: "Transaction amount with comma as decimal separator"
+    required: true
+
+  - name: "Valuuta"
+    alias: "Currency"
+    type: "string"
+    description: "Currency code (e.g., EUR)"
+    required: true
+
+  - name: "Selgitus"
+    alias: "Description"
+    type: "string"
+    description: "Transaction description/memo"
+    required: true
+
+  - name: "Kliendi konto"
+    alias: "BudgetAccountNumber"
+    type: "string"
+    description: "Customer's account number (IBAN)"
+    required: true
+
+  - name: "Saaja/Maksja"
+    alias: "OtherAccountName"
+    type: "string"
+    description: "Recipient/Payer name"
+    required: false
+
+  - name: "Deebet/Kreedit"
+    alias: "DebitCredit"
+    type: "string"
+    description: "Debit (D) or Credit (K) indicator"
+    required: true
+
+  - name: "Arhiveerimistunnus"
+    alias: "TransactionID" # Changed alias to TransactionID
+    type: "string"
+    description: "Unique transaction identifier from the bank."
+    required: false
+
+  - name: "Tehingu tüüp"
+    alias: "TransactionType"
+    type: "string"
+    description: "Type of transaction (e.g., 'MK', 'AS')"
+    required: false
+
+  - name: "Viitenumber"
+    alias: "ReferenceNumber"
+    type: "string"
+    description: "Reference number for the transaction"
+    required: false
+
+#  - name: "Maksekorralduse selgitus"
+#    alias: "PaymentOrderExplanation"
+#    type: "string"
+#    description: "Additional explanation for payment orders"
+#    required: false
+
+  - name: "Reatüüp"
+    alias: "RowType"
+    type: "string"
+    description: "Type of row, e.g., '20' for transaction, '10' for balance."
+    required: true
+
+  - name: "Dokumendi number"
+    alias: "DocumentNumber"
+    type: "string"
+    description: "Document number from the bank statement."
+    required: false

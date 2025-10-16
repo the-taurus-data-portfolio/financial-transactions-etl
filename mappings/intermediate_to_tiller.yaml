@@ -1,0 +1,103 @@
+# intermediate_to_tiller.yaml
+mapping_name: "Intermediate to Tiller Target Mapping"
+description: "Rules for transforming the intermediate transaction format into the Tiller Money spreadsheet format."
+source_schema: "intermediate.yaml"
+target_schema: "tiller_target.yaml"
+
+field_mappings:
+  - source_field: "TransactionID" # From Intermediate.TransactionID (which already has the "SW" prefix)
+    target_field: "Transaction ID" # This is the Tiller field
+    transformation:
+      type: "prefix_string"
+      prefix: "manual:"
+      notes: "Adds 'manual:' prefix to the existing transaction ID (e.g., 'SWXXXX') for Tiller's manual import recognition."
+  - source_field: "TransactionDate"
+    target_field: "Date"
+    transformation:
+      type: "date_format_conversion"
+      source_format: "DD.MM.YYYY"
+      target_format: "M/D/YYYY"
+      notes: "Convert date from DD.MM.YYYY to M/D/YYYY for Tiller's 'Date' column."
+
+  - source_field: "Amount"
+    target_field: "Amount"
+    transformation:
+      type: "direct_copy"
+      notes: "Amount is already a signed float with '.' decimal separator."
+
+  - source_field: "Description"
+    target_field: "Description"
+    transformation:
+      type: "direct_copy"
+      notes: "Copy transaction description to Tiller's 'Description' column."
+
+  - source_field: "BudgetAccountNumber"
+    target_field: "Account #"
+    transformation:
+      type: "direct_copy"
+  - source_field: "BudgetAccountNumber" # This is the anonymized IBAN from the intermediate format
+    target_field: "Account"
+    transformation:
+      type: "lookup_account_name"
+      accounts_config_file: "config/tiller/accounts.yaml"
+      lookup_key_field: "account_anonymized_iban"
+      notes: "Lookup the user-friendly account name from specified accounts config based on anonymized IBAN."
+
+  - source_field: "BudgetAccountNumber"
+    target_field: "Account ID"
+    transformation:
+      type: "lookup_account_id"
+      accounts_config_file: "config/tiller/accounts.yaml"
+      lookup_key_field: "account_anonymized_iban"
+      notes: "Lookup the Tiller Account ID from specified accounts config based on anonymized IBAN."
+
+  - source_field: "BudgetAccountNumber"
+    target_field: "Institution"
+    transformation:
+      type: "lookup_bank_name"
+      accounts_config_file: "config/tiller/accounts.yaml"
+      lookup_key_field: "account_anonymized_iban"
+      notes: "Lookup the bank name from specified accounts config based on anonymized IBAN."
+
+  - source_field: "OtherAccountName"
+    target_field: "From / To"
+    transformation:
+      type: "direct_copy"
+      notes: "Copy counterparty name to the custom 'From / To' field in Tiller."
+
+  - source_field: "TransactionDate" # Re-use TransactionDate for Month field
+    target_field: "Month"
+    transformation:
+      type: "date_to_month_start"
+      source_format: "DD.MM.YYYY"
+      target_format: "M/D/YY"
+      notes: "Convert transaction date to the first day of that month (M/D/YY format) for Tiller's 'Month' column."
+
+  - source_field: "TransactionDate" # Re-use TransactionDate for Week field
+    target_field: "Week"
+    transformation:
+      type: "date_to_week_start"
+      source_format: "DD.MM.YYYY"
+      target_format: "M/D/YY"
+      start_of_week: "Sunday"
+      notes: "Convert transaction date to the first day of the week (Sunday, M/D/YY format) for Tiller's 'Week' column."
+
+  - target_field: "Date Added" # This field is based on the current date, not source data
+    transformation:
+      type: "current_date"
+      target_format: "M/D/YY"
+      notes: "Populate with the current date (M/D/YY format) when the data is processed."
+
+# Fields in Tiller_target.yaml that are not explicitly mapped from intermediate.yaml.
+# These fields will be initialized with default values (empty string or None) by the converter
+# or are expected to be populated by Tiller's internal logic after import.
+unmapped_target_fields:
+  - "Category"
+  - "Notes"
+  - "Tags"
+  - "Check Number"
+  - "Full Description"
+  - "Category Hint"
+  - "Categorized By"
+  - "Categorized Date"
+  - "Source"

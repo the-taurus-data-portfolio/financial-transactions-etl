@@ -1,0 +1,62 @@
+# Configuration file for Bank to Tiller ETL Pipeline
+
+# Logging configuration
+logging:
+  level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  console: true
+  file:
+    enabled: true
+    path: "logs/etl_pipeline.log"
+    max_size: "10MB"
+    backup_count: 5
+
+# Output configuration
+output:
+  intermediate_format:
+    destination: "both"  # Options: "console", "file", "both"
+    file_path: "output/intermediate_transactions.csv"
+  tiller_format:
+    destination: "both"  # Options: "console", "file", "both"
+    file_path: "output/tiller_transactions.csv"
+    console_limit: 50  # Maximum rows to display in console
+
+# Processing configuration
+processing:
+  # Bank type detection (future feature)
+  auto_detect_bank: false
+  default_bank_type: "swedbank"
+
+  # Error handling
+  strict_mode: true  # If true, stop on first error; if false, continue and log errors
+  skip_invalid_rows: true
+
+  # Data validation
+  validate_schemas: true
+  validate_amounts: true  # Check for reasonable amount values
+  max_amount_threshold: 1000000  # Flag transactions above this amount
+
+# File processing
+files:
+  # Input file patterns
+  supported_extensions: [".csv", ".CSV"]
+  encoding: "utf-8"
+
+  # CSV parsing options
+  csv_options:
+    skip_blank_lines: true
+    strip_whitespace: true
+
+source_converters:
+  swedbank:
+    source_schema: swedbank_source.yaml
+    mapping: swedbank_to_intermediate.yaml
+  lhv:
+    source_schema: lhv_source.yaml
+    mapping: lhv_to_intermediate.yaml
+
+# Schema and mapping paths
+paths:
+  schemas_dir: "schemas"
+  mappings_dir: "mappings"
+  output_dir: "output"
+  logs_dir: "logs"

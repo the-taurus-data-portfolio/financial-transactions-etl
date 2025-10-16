@@ -1,0 +1,99 @@
+# schemas/seb_source.yaml
+schema_name: "SEB Estonia Source CSV Schema"
+description: "Schema for SEB Estonia CSV export files"
+file_details:
+  delimiter: ";"
+  decimal_separator: ","
+  date_format: "DD.MM.YYYY"
+  encoding: "utf-8"
+
+fields:
+  - name: "Kliendi konto"
+    alias: "BudgetAccountNumber"
+    type: "string"
+    description: "Customer's account number (IBAN)"
+    required: true
+
+  - name: "Dokumendi number"
+    alias: "DocumentNumber"
+    type: "string"
+    description: "Document number from the bank statement"
+    required: false
+
+  - name: "Kuupäev"
+    alias: "TransactionDate"
+    type: "string"
+    description: "Transaction date in DD.MM.YYYY format"
+    required: true
+
+  - name: "Saaja/maksja konto"
+    alias: "OtherAccountNumber"
+    type: "string"
+    description: "Other party's account number"
+    required: false
+
+  - name: "Saaja/maksja nimi"
+    alias: "OtherAccountName"
+    type: "string"
+    description: "Recipient/Payer name"
+    required: false
+
+  - name: "Saaja panga kood"
+    alias: "OtherBankCode"
+    type: "string"
+    description: "Recipient/Payer bank code"
+    required: false
+
+  - name: "Tüüp"
+    alias: "TransactionType"
+    type: "string"
+    description: "Type of transaction (e.g., 'MK', 'SR', 'H')"
+    required: false
+
+  - name: "Deebet/Kreedit (D/C)"
+    alias: "DebitCredit"
+    type: "string"
+    description: "Debit (D) or Credit (C) indicator"
+    required: true
+
+  - name: "Summa"
+    alias: "Amount"
+    type: "string"
+    description: "Transaction amount with comma as decimal separator"
+    required: true
+
+  - name: "Viitenumber"
+    alias: "ReferenceNumber"
+    type: "string"
+    description: "Reference number for the transaction"
+    required: false
+
+  - name: "Arhiveerimistunnus"
+    alias: "TransactionID"
+    type: "string"
+    description: "Unique transaction identifier from the bank"
+    required: false
+
+  - name: "Selgitus"
+    alias: "Description"
+    type: "string"
+    description: "Transaction description/memo"
+    required: false
+
+  - name: "Teenustasu"
+    alias: "ServiceFee"
+    type: "string"
+    description: "Service fee for the transaction"
+    required: false
+
+  - name: "Valuuta"
+    alias: "Currency"
+    type: "string"
+    description: "Currency code (e.g., EUR)"
+    required: true
+
+  - name: "Isikukood või registrikood"
+    alias: "PersonOrRegistrationCode"
+    type: "string"
+    description: "Personal or registration ID"
+    required: false

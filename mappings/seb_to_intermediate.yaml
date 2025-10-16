@@ -1,0 +1,74 @@
+# mappings/seb_to_intermediate.yaml
+mapping_name: "SEB Bank Source to Intermediate Mapping"
+description: "Rules for transforming the initial SEB bank CSV data into the universal intermediate transaction format."
+source_schema: "seb_source.yaml"
+target_schema: "intermediate.yaml"
+
+# Rules for filtering rows before processing
+filters:
+  - field: "Tüüp"
+    operator: "not_in"
+    value: ["H", "K2", "LS", "SR"]
+    description: "Exclude interest, header, footer, and special rows. Only keep actual transaction rows."
+
+# Rules for mapping and transforming fields
+field_mappings:
+  - source_field: "Kuupäev"
+    target_field: "TransactionDate"
+    transformation:
+      type: "direct_copy"
+      notes: "Date format DD.MM.YYYY remains unchanged at this stage."
+
+  - source_field: "Summa"
+    target_field: "Amount"
+    transformation:
+      type: "calculated_float"
+      rules:
+        - action: "replace_decimal_separator"
+          from: ","
+          to: "."
+          notes: "Change comma decimal separator to dot."
+        - action: "apply_sign_based_on_field"
+          field_for_sign: "Deebet/Kreedit (D/C)"
+          debit_value: "D"
+          credit_value: "C"
+          notes: "Multiply by -1 if DebitCredit is 'D', otherwise keep positive."
+
+  - source_field: "Valuuta"
+    target_field: "Currency"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Selgitus"
+    target_field: "Description"
+    transformation:
+      type: "string_clean"
+      rules:
+        - action: "remove_leading_apostrophe"
+          notes: "Remove single leading apostrophe if present."
+
+  - source_field: "Kliendi konto"
+    target_field: "BudgetAccountNumber"
+    transformation:
+      type: "anonymize_iban"
+      rules:
+        - action: "keep_country_prefix"
+          length: 2
+        - action: "keep_last_n_digits"
+          n: 5
+        - action: "replace_middle_with"
+          character: "*"
+          count: 3
+      notes: "Anonymize IBAN: keep country prefix, replace middle with '***', and keep last 5 digits."
+
+  - source_field: "Saaja/maksja nimi"
+    target_field: "OtherAccountName"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Arhiveerimistunnus"
+    target_field: "TransactionID"
+    transformation:
+      type: "prefix_string"
+      prefix: "SE" # Prefix with "SE" for SEB bank transactions
+      notes: "Map 'Arhiveerimistunnus' to 'TransactionID' and prefix with 'SEB' for uniqueness."

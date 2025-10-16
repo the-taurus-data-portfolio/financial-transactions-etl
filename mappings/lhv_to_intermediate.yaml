@@ -1,0 +1,85 @@
+# config/mappings/lhv_to_intermediate.yaml
+mapping_name: "LHV Source to Intermediate Mapping"
+description: "Rules for transforming LHV bank's transaction CSV data into the universal intermediate transaction format."
+source_schema: "lhv_source.yaml"
+target_schema: "intermediate.yaml"
+
+# Rules for filtering rows before processing (if any specific to LHV)
+# filters:
+#   - field: "SomeColumn"
+#     operator: "equals"
+#     value: "SomeValue"
+#     description: "Example filter for LHV specific rows."
+
+field_mappings:
+  - source_field: "Kuupäev" # From LHV Source.Kuupäev
+    target_field: "TransactionDate"
+    transformation:
+      type: "date_format_conversion"
+      source_format: "YYYY-MM-DD" # LHV date format
+      target_format: "DD.MM.YYYY" # Intermediate date format
+      notes: "Direct copy of date, ensuring format consistency."
+
+  - source_field: "Summa" # From LHV Source.Summa
+    target_field: "Amount"
+    transformation:
+      type: "calculated_float"
+      rules:
+        - action: "replace_decimal_separator"
+          from: ","
+          to: "."
+          notes: "Change comma decimal separator to dot."
+        - action: "apply_sign_based_on_field"
+          field_for_sign: "Deebet/Kreedit (D/C)" # From LHV Source.Deebet/Kreedit (D/C)
+          debit_value: "D"
+          credit_value: "C"
+          notes: "Multiply by -1 if 'Deebet/Kreedit (D/C)' is 'D', otherwise keep positive."
+
+  - source_field: "Valuuta" # From LHV Source.Valuuta
+    target_field: "Currency"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Selgitus" # From LHV Source.Selgitus
+    target_field: "Description"
+    transformation:
+      type: "direct_copy" # No specific cleaning rules for now, can be added later
+
+  - source_field: "Kliendi konto" # From LHV Source.Kliendi konto
+    target_field: "BudgetAccountNumber"
+    transformation:
+      type: "anonymize_iban"
+      rules:
+        - action: "keep_country_prefix"
+          length: 2 # Assuming 2 characters for country prefix (e.g., 'EE')
+        - action: "keep_last_n_digits"
+          n: 5 # Keep the last 5 digits
+        - action: "replace_middle_with"
+          character: "*"
+          count: 3 # Replace middle with three asterisks
+      notes: "Anonymize IBAN: keep country prefix, replace middle with '***', and keep last 5 digits. Example: EE***5678."
+
+  - source_field: "Saaja/maksja nimi" # From LHV Source.Saaja/maksja nimi
+    target_field: "OtherAccountName"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Kande viide" # Using "Kande viide" for TransactionID, similar to Swedbank's "Arhiveerimistunnus"
+    target_field: "TransactionID"
+    transformation:
+      type: "prefix_string"
+      prefix: "LH" # Prefix with "LH" for LHV transactions
+      notes: "Map 'Kande viide' to 'TransactionID' and prefix with 'LH' for uniqueness."
+
+# Add any other fields from LHV that might map to intermediate, or define unmapped fields
+unmapped_source_fields:
+ - "Dokumendi number"
+ - "Saaja panga kood"
+ - "Tühi"
+ - "Viitenumber"
+ - "Arhiveerimistunnus" # If not used for TransactionID
+ - "Teenustasu"
+ - "Isikukood või registrikood"
+ - "Saaja/maksja panga BIC"
+ - "Makse algataja nimi"
+ - "Konto teenusepakkuja viide"

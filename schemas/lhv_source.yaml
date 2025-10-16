@@ -1,0 +1,127 @@
+# config/schemas/lhv_source.yaml
+schema_name: "LHV Source Transaction Schema"
+description: "Defines the structure and types for LHV bank's exported transaction CSV files."
+file_details:
+  delimiter: ","
+  encoding: "utf-8"
+  header: true # Assuming the first row is always headers
+  quote_char: "\""
+
+fields:
+  - name: "Kliendi konto"
+    type: "string"
+    description: "Client's own account number (IBAN)."
+    required: true
+    example: "EE102200221020145678"
+
+  - name: "Dokumendi number"
+    type: "string"
+    description: "Document number related to the transaction."
+    required: false
+    example: "123456"
+
+  - name: "Kuupäev"
+    type: "string" # Will be converted later, keep as string from source
+    description: "Date of the transaction."
+    required: true
+    format: "DD.MM.YYYY" # Common Estonian date format
+    example: "01.07.2025"
+
+  - name: "Saaja/maksja konto"
+    type: "string"
+    description: "Counterparty's account number (IBAN)."
+    required: false
+    example: "EE901010000200223344"
+
+  - name: "Saaja/maksja nimi"
+    type: "string"
+    description: "Counterparty's name."
+    required: true
+    example: "OÜ Näidisettevõte"
+
+  - name: "Saaja panga kood"
+    type: "string"
+    description: "Counterparty's bank code."
+    required: false
+    example: "767"
+
+  - name: "Tühi"
+    type: "string"
+    description: "An empty field, likely for padding or future use. Can be ignored."
+    required: false
+    example: ""
+
+  - name: "Deebet/Kreedit (D/C)"
+    type: "string"
+    description: "Indicates if the amount is Debit (D) or Credit (C)."
+    required: true
+    enum: ["D", "C"]
+    example: "C"
+
+  - name: "Summa"
+    type: "float"
+    description: "Transaction amount. Will need to be combined with D/C to determine sign."
+    required: true
+    decimal_separator: "." # Assuming dot as decimal separator
+    example: "150.75"
+
+  - name: "Viitenumber"
+    type: "string"
+    description: "Reference number for the payment."
+    required: false
+    example: "1234567890"
+
+  - name: "Arhiveerimistunnus"
+    type: "string"
+    description: "Archiving identifier for the transaction."
+    required: false
+    example: "ARC12345"
+
+  - name: "Selgitus"
+    type: "string"
+    description: "Description or explanation of the transaction."
+    required: true
+    example: "Rendimaksu tasumine"
+
+  - name: "Teenustasu"
+    type: "float"
+    description: "Service fee associated with the transaction, if any."
+    required: false
+    decimal_separator: "."
+    example: "0.50"
+
+  - name: "Valuuta"
+    type: "string"
+    description: "Currency of the transaction."
+    required: true
+    example: "EUR"
+
+  - name: "Isikukood või registrikood"
+    type: "string"
+    description: "Personal ID code or company registration code of the counterparty."
+    required: false
+    example: "12345678901"
+
+  - name: "Saaja/maksja panga BIC"
+    type: "string"
+    description: "BIC code of the counterparty's bank."
+    required: false
+    example: "LHVBEE22"
+
+  - name: "Makse algataja nimi"
+    type: "string"
+    description: "Name of the payment initiator."
+    required: false
+    example: "Peeter Kask"
+
+  - name: "Kande viide"
+    type: "string"
+    description: "Reference for the entry."
+    required: false
+    example: "REF-001"
+
+  - name: "Konto teenusepakkuja viide"
+    type: "string"
+    description: "Reference from the account service provider."
+    required: false
+    example: "ASP-XYZ"

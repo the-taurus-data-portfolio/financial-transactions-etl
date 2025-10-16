@@ -1,0 +1,8 @@
+output/
+.venv/
+venv/
+.idea/
+data/transactions/
+logs/
+config/credentials/
+config/tiller/accounts.yaml
