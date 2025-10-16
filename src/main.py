@@ -65,7 +65,6 @@ class ETLPipeline:
             )
 
             # Initialize converters
-            # self.source_converter = SwedbankConverter(self.schema_loader)
             # IMPORTANT: TillerConverter also needs schema_loader
             self.target_converter = TillerConverter(self.schema_loader, self.config.get_tiller_history_source())
 

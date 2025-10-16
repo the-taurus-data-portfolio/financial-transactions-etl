@@ -3,10 +3,10 @@
 Data format converters.
 """
 
-from .swedbank_converter import SwedbankConverter
 from .tiller_converter import TillerConverter
+from .generic_source_converter import GenericSourceConverter
 
 __all__ = [
-    'SwedbankConverter',
-    'TillerConverter'
+    'TillerConverter',
+    'GenericSourceConverter'
 ]
