@@ -2,11 +2,11 @@
 Schema and mapping loader implementation.
 """
 
-import yaml
-import os
 import logging
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Dict, Any, List
+
+import yaml
 
 from .interfaces import SchemaLoader
 

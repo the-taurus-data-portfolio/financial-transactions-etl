@@ -3,18 +3,19 @@
 Generic CSV to intermediate format converter, parameterized for different banks.
 """
 
-import pandas as pd
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Dict, Any
 
-from src.core.interfaces import SourceConverter
-from src.core.schema_loader import YamlSchemaLoader
-from src.utils.string_utils import (
+import pandas as pd
+
+from core.interfaces import SourceConverter
+from core.schema_loader import YamlSchemaLoader
+from utils.date_utils import convert_date_format
+from utils.logging_config import LoggerMixin, log_dataframe_info, log_processing_step
+from utils.string_utils import (
     clean_string, anonymize_iban, convert_decimal_separator,
     parse_amount, apply_amount_sign, prefix_string
 )
-from src.utils.logging_config import LoggerMixin, log_dataframe_info, log_processing_step
-from src.utils.date_utils import convert_date_format
 
 
 class GenericSourceConverter(SourceConverter, LoggerMixin):

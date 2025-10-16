@@ -3,9 +3,10 @@
 String utility functions for the ETL pipeline.
 """
 
-import re
 import logging
+import re
 from typing import Optional, List
+
 import pandas as pd
 
 

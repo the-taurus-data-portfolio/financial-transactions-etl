@@ -4,8 +4,8 @@ Core components for the ETL pipeline.
 """
 
 from .config_manager import ConfigManager
-from .schema_loader import YamlSchemaLoader
 from .interfaces import SourceConverter, TargetConverter, SchemaLoader
+from .schema_loader import YamlSchemaLoader
 
 __all__ = [
     'ConfigManager',

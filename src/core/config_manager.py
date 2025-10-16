@@ -2,11 +2,11 @@
 Configuration management for the ETL pipeline.
 """
 
-import yaml
-import os
 import logging
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Dict, Any
+
+import yaml
 
 
 class ConfigManager:

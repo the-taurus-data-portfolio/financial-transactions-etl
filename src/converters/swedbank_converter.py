@@ -3,18 +3,18 @@
 Swedbank CSV to intermediate format converter.
 """
 
-import pandas as pd
-import logging
-from typing import Dict, Any, List
 from pathlib import Path
+from typing import Dict, Any
 
-from src.core.interfaces import SourceConverter
-from src.core.schema_loader import YamlSchemaLoader
-from src.utils.string_utils import (
+import pandas as pd
+
+from core.interfaces import (SourceConverter)
+from core.schema_loader import YamlSchemaLoader
+from utils.logging_config import LoggerMixin, log_dataframe_info, log_processing_step  # Добавлен log_processing_step
+from utils.string_utils import (
     clean_string, anonymize_iban, convert_decimal_separator,
     parse_amount, apply_amount_sign, prefix_string
 )
-from src.utils.logging_config import LoggerMixin, log_dataframe_info, log_processing_step # Добавлен log_processing_step
 
 
 class SwedbankConverter(SourceConverter, LoggerMixin):

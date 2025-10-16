@@ -7,10 +7,11 @@ Simplified version focusing on Transaction ID column retrieval only.
 import logging
 from pathlib import Path
 from typing import Set, Dict, Any, Optional
+
 import gspread
 from google.oauth2.service_account import Credentials
 
-from src.utils.logging_config import LoggerMixin
+from utils.logging_config import LoggerMixin
 
 
 class GoogleSheetsReader(LoggerMixin):

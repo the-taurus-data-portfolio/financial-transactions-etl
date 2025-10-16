@@ -4,10 +4,11 @@ Main entry point for the Bank to Tiller ETL pipeline.
 """
 
 import argparse
-import sys
 import logging
+import sys
 from pathlib import Path
 from typing import List, Dict, Any
+
 import pandas as pd
 
 # Add src to path for imports

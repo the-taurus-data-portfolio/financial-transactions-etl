@@ -4,7 +4,8 @@ Date utility functions for the ETL pipeline.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Optional
+
 import pandas as pd
 
 
