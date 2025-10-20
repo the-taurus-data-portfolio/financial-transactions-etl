@@ -80,6 +80,17 @@ class SourceConverter(ABC):
         """
         pass
 
+    @abstractmethod
+    def save_output(self, df: pd.DataFrame, config) -> None:
+        """
+        Save intermediate format output to file and/or console.
+
+        Args:
+            df: DataFrame in intermediate format
+            config: ConfigManager instance
+        """
+        pass
+
 
 class TargetConverter(ABC):
     """
@@ -133,6 +144,18 @@ class TargetConverter(ABC):
 
         Returns:
             Target system identifier
+        """
+        pass
+
+    @abstractmethod
+    def save_output(self, df: pd.DataFrame, config, target_name: str = 'target') -> None:
+        """
+        Save target format output to file and/or console.
+
+        Args:
+            df: DataFrame in target format
+            config: ConfigManager instance
+            target_name: Name of the target system for headers
         """
         pass
 

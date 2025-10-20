@@ -1,0 +1,303 @@
+"""
+ETL Pipeline orchestrator for bank transaction processing.
+
+Manages the complete flow from CSV input through intermediate format to target system format.
+"""
+
+import logging
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+
+import pandas as pd
+
+from core.config_manager import ConfigManager
+from core.schema_loader import YamlSchemaLoader
+from converters.target_converter_manager import TargetConverterManager
+from converters.generic_source_converter import GenericSourceConverter
+from utils.logging_config import setup_logging
+from converters.bank_detector import BankDetector
+from utils.file_utils import get_input_files
+
+
+class ETLPipeline:
+    """
+    Main ETL pipeline orchestrator for bank transaction processing.
+
+    Coordinates:
+    - Bank detection from CSV headers
+    - Conversion from bank format to intermediate format
+    - Conversion from intermediate format to target system format
+    - Output generation (file and console)
+    """
+
+    def __init__(self, config_path: str):
+        """
+        Initialize the ETL Pipeline orchestrator.
+
+        Args:
+            config_path: Path to the main configuration file.
+        """
+        self.config = None
+        self.schema_loader = None
+        self.target_converter_manager = None
+        self.logger = None
+        self.bank_detector = None
+
+        self._initialize(config_path)
+
+    def _initialize(self, config_path: str) -> None:
+        """Initialize all pipeline components."""
+        try:
+            self.config = ConfigManager(config_path)
+            logging_config = self.config.get_logging_config()
+            setup_logging(logging_config)
+            self.logger = logging.getLogger(__name__)
+            self.config.ensure_directories()
+
+            paths_config = self.config.get_paths_config()
+            self.schema_loader = YamlSchemaLoader(
+                schemas_dir=paths_config['schemas_dir'],
+                mappings_dir=paths_config['mappings_dir']
+            )
+
+            # Initialize target converter manager
+            self.target_converter_manager = TargetConverterManager(self.config, self.schema_loader, self.logger)
+            self.target_converter_manager.initialize_converters()
+
+            # Initialize bank detector for header-based bank detection
+            self.bank_detector = BankDetector(self.config, self.logger)
+
+            self.logger.info("ETL Pipeline initialized successfully")
+
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Failed to initialize ETL pipeline: {e}")
+            else:
+                print(f"FATAL: Failed to initialize ETL pipeline: {e}")
+            raise
+
+    def process_single_file(
+        self, file_path: Path, override_bank_type: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process a single CSV file through the complete pipeline.
+
+        Args:
+            file_path: Path to CSV file
+            override_bank_type: Optional bank type to override auto-detection
+
+        Returns:
+            Processing results dictionary
+        """
+        self.logger.info(f"Processing file: {file_path.name}")
+
+        # Get default target converter and its name
+        target_converter = self.target_converter_manager.get_default_converter()
+        target_name = self.target_converter_manager.get_default_target_name()
+
+        results = {
+            'file_path': str(file_path),
+            'success': False,
+            'error': None,
+            'bank_type': None,
+            'intermediate_rows': 0,
+            'target_rows': 0,
+            'intermediate_data': None,
+            'target_data': None,
+            'target_name': target_name
+        }
+
+        source_converters_config = self.config.get('source_converters', {})
+        if not source_converters_config:
+            error_msg = "No 'source_converters' defined in the configuration"
+            self.logger.error(error_msg)
+            results['error'] = error_msg
+            return results
+
+        # Determine bank type: manual override takes precedence over auto-detection
+        detected_bank_type = override_bank_type
+        matched_sample_file = None
+        if not detected_bank_type:
+            detected_bank_type, matched_sample_file = self.bank_detector.detect_bank_from_header(file_path)
+
+        if not detected_bank_type:
+            error_msg = f"Could not determine bank type for file '{file_path.name}'"
+            self.logger.warning(error_msg)
+            results['error'] = error_msg
+            return results
+
+        results['bank_type'] = detected_bank_type
+
+        # Validate bank configuration exists
+        source_config_params = source_converters_config.get(detected_bank_type)
+        if not source_config_params:
+            error_msg = f"Configuration for bank type '{detected_bank_type}' not found"
+            self.logger.error(error_msg)
+            results['error'] = error_msg
+            return results
+
+        # Extract schema and mapping configuration
+        source_schema_name = source_config_params.get('source_schema')
+        mapping_name = source_config_params.get('mapping')
+
+        if not source_schema_name or not mapping_name:
+            error_msg = (
+                f"Incomplete configuration for bank '{detected_bank_type}': "
+                f"missing 'source_schema' or 'mapping'"
+            )
+            self.logger.error(error_msg)
+            results['error'] = error_msg
+            return results
+
+        # Get primary sample file (first in config) for column name normalization
+        primary_sample_file = self.bank_detector.get_primary_sample_file(detected_bank_type)
+
+        # Initialize converter for the detected bank
+        try:
+            source_converter = GenericSourceConverter(
+                schema_loader=self.schema_loader,
+                bank_type=detected_bank_type,
+                source_schema_name=source_schema_name,
+                mapping_rules_name=mapping_name,
+                matched_sample_file=matched_sample_file,
+                primary_sample_file=primary_sample_file
+            )
+        except Exception as e:
+            error_msg = f"Failed to initialize converter for '{detected_bank_type}': {e}"
+            self.logger.error(error_msg)
+            results['error'] = error_msg
+            return results
+
+        try:
+            # Step 1: Convert source to intermediate
+            self.logger.info("Step 1: Converting source to intermediate format")
+            intermediate_df = source_converter.process_file(str(file_path))
+
+            if len(intermediate_df) == 0:
+                self.logger.warning("No data produced in intermediate format")
+                return results
+
+            results['intermediate_rows'] = len(intermediate_df)
+            results['intermediate_data'] = intermediate_df
+
+            # Step 2: Convert intermediate to target format
+            self.logger.info(f"Step 2: Converting intermediate to {target_name} format")
+            target_df = target_converter.transform_to_target(intermediate_df)
+
+            results['target_rows'] = len(target_df)
+            results['target_data'] = target_df
+            results['success'] = True
+
+            self.logger.info(f"Successfully processed {file_path.name}: "
+                             f"{results['intermediate_rows']} -> {results['target_rows']} transactions")
+
+        except Exception as e:
+            error_msg = f"Failed to process {file_path.name}: {e}"
+            self.logger.error(error_msg)
+            results['error'] = str(e)
+
+            if self.config.is_strict_mode():
+                raise
+
+        return results
+
+    def save_outputs(self, all_results: List[Dict[str, Any]]) -> None:
+        """
+        Save processing outputs according to configuration.
+
+        Args:
+            all_results: List of processing results
+        """
+        # Combine all successful results
+        intermediate_dfs = []
+        target_dfs = []
+
+        for result in all_results:
+            if result['success'] and result['intermediate_data'] is not None:
+                intermediate_dfs.append(result['intermediate_data'])
+            if result['success'] and result['target_data'] is not None:
+                target_dfs.append(result['target_data'])
+
+        if not intermediate_dfs and not target_dfs:
+            self.logger.warning("No data to save")
+            return
+
+        # Get source converter to use for intermediate output
+        # We create a minimal converter just for saving intermediate output
+        # In a multi-bank scenario, all intermediate data follows same format
+        source_converter = GenericSourceConverter(
+            schema_loader=self.schema_loader,
+            bank_type='generic',
+            source_schema_name='intermediate.yaml',  # Not used but required
+            mapping_rules_name='intermediate_to_tiller.yaml'  # Not used but required
+        ) if intermediate_dfs else None
+
+        # Combine DataFrames
+        if intermediate_dfs and source_converter:
+            combined_intermediate = pd.concat(intermediate_dfs, ignore_index=True)
+            source_converter.save_output(combined_intermediate, self.config)
+
+        if target_dfs:
+            combined_target = pd.concat(target_dfs, ignore_index=True)
+            target_converter = self.target_converter_manager.get_default_converter()
+            target_name = self.target_converter_manager.get_default_target_name()
+            target_converter.save_output(combined_target, self.config, target_name)
+
+    def run(self, input_dir: str, override_bank_type: Optional[str] = None) -> bool:
+        """
+        Run the complete ETL pipeline.
+
+        Args:
+            input_dir: Directory containing CSV files to process
+            override_bank_type: Optional bank type to override auto-detection for all files
+
+        Returns:
+            True if processing was successful, False otherwise
+        """
+        self.logger.info(f"Starting ETL pipeline for directory: {input_dir}")
+        if override_bank_type:
+            self.logger.info(f"Using bank override: {override_bank_type}")
+
+        try:
+            # Find input files
+            supported_extensions = self.config.get_supported_extensions()
+            csv_files = get_input_files(input_dir, supported_extensions, self.logger)
+
+            if not csv_files:
+                self.logger.error("No CSV files found to process")
+                return False
+
+            # Process all files
+            all_results = []
+            successful_files = 0
+
+            for csv_file in csv_files:
+                result = self.process_single_file(csv_file, override_bank_type)
+                all_results.append(result)
+
+                if result['success']:
+                    successful_files += 1
+
+            # Save outputs
+            if successful_files > 0:
+                self.save_outputs(all_results)
+
+            # Summary
+            total_files = len(csv_files)
+            failed_files = total_files - successful_files
+
+            self.logger.info(f"ETL Pipeline completed: {successful_files}/{total_files} files processed successfully")
+
+            if failed_files > 0:
+                self.logger.warning(f"{failed_files} files failed to process")
+
+                # Log failed files
+                for result in all_results:
+                    if not result['success']:
+                        self.logger.error(f"Failed: {result['file_path']} - {result['error']}")
+
+            return successful_files > 0
+
+        except Exception as e:
+            self.logger.error(f"ETL pipeline failed: {e}")
+            return False

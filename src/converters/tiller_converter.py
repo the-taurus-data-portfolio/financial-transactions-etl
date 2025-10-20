@@ -25,19 +25,22 @@ class TillerConverter(TargetConverter, LoggerMixin):
     Converter from intermediate format to Tiller format with Transaction ID-based deduplication.
     """
 
-    def __init__(self, schema_loader: YamlSchemaLoader, tiller_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, schema_loader: YamlSchemaLoader, tiller_config: Optional[Dict[str, Any]] = None,
+                 accounts_file: Optional[str] = None):
         """
         Initialize Tiller converter.
 
         Args:
             schema_loader: Schema loader instance
             tiller_config: Tiller history source configuration for deduplication
+            accounts_file: Path to accounts configuration file (optional)
         """
         self.schema_loader = schema_loader
         self.source_schema = None  # Intermediate schema is source for Tiller
         self.target_schema = None  # Tiller target schema
         self.mapping_rules = None
         self.accounts_config = None
+        self.accounts_file = accounts_file or "config/tiller/accounts.yaml"
         self._loaded_accounts_configs: Dict[str, Dict[str, Any]] = {}
 
         # Deduplication components
@@ -66,7 +69,7 @@ class TillerConverter(TargetConverter, LoggerMixin):
     def _load_accounts_config(self) -> None:
         """Load accounts mapping configuration."""
         try:
-            config_path = Path("config/tiller/accounts.yaml")
+            config_path = Path(self.accounts_file)
             if not config_path.exists():
                 self.logger.warning(
                     f"Accounts configuration file not found at {config_path}. Account enrichment will be skipped.")
@@ -491,3 +494,30 @@ class TillerConverter(TargetConverter, LoggerMixin):
             output_lines.append(f"... showing only first {max_rows} rows.")
         output_lines.append("=" * 80)
         return "\n".join(output_lines)
+
+    def save_output(self, df: pd.DataFrame, config, target_name: str = 'tiller') -> None:
+        """
+        Save target format output to file and/or console.
+
+        Args:
+            df: DataFrame in target (Tiller) format
+            config: ConfigManager instance
+            target_name: Name of the target system for headers
+        """
+        output_config = config.get_output_config()
+        tiller_config = output_config.get(f'{target_name}_format', {})
+
+        destination = tiller_config.get('destination', 'both')
+
+        if destination in ['file', 'both']:
+            file_path = tiller_config.get('file_path', f'output/{target_name}_transactions.csv')
+            self.save_to_csv(df, file_path, output_config)
+
+        if destination in ['console', 'both']:
+            console_limit = tiller_config.get('console_limit', 50)
+            formatted_output = self.format_for_console(df, console_limit)
+            print("\n" + "=" * 80)
+            print(f"{target_name.upper()} FORMAT DATA (Ready for copy-paste):")
+            print("=" * 80)
+            print(formatted_output)
+            print("=" * 80)

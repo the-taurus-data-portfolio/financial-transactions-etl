@@ -4,7 +4,7 @@ Generic CSV to intermediate format converter, parameterized for different banks.
 """
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import pandas as pd
 
@@ -16,6 +16,7 @@ from utils.string_utils import (
     clean_string, anonymize_iban, convert_decimal_separator,
     parse_amount, apply_amount_sign, prefix_string
 )
+from utils import csv_utils
 
 
 class GenericSourceConverter(SourceConverter, LoggerMixin):
@@ -24,16 +25,22 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
     """
 
     def __init__(self, schema_loader: YamlSchemaLoader, bank_type: str,
-                 source_schema_name: str, mapping_rules_name: str):
+                 source_schema_name: str, mapping_rules_name: str,
+                 matched_sample_file: Optional[str] = None,
+                 primary_sample_file: Optional[str] = None):
         self.schema_loader = schema_loader
         self.bank_type = bank_type
         self.source_schema_name = source_schema_name
         self.mapping_rules_name = mapping_rules_name
+        self.matched_sample_file = matched_sample_file
+        self.primary_sample_file = primary_sample_file
         self.source_schema = None
         self.target_schema = None
         self.mapping_rules = None
+        self.column_rename_map = None
 
         self._load_schemas_and_mappings()
+        self._build_column_rename_map()
 
     def _load_schemas_and_mappings(self) -> None:
         try:
@@ -47,6 +54,32 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
             self.logger.error(f"Failed to load schemas and mappings for {self.bank_type} converter: {e}")
             raise
 
+    def _build_column_rename_map(self) -> None:
+        """
+        Build a mapping from detected sample column names to primary sample column names.
+        If the detected sample is not the primary, we need to rename columns.
+        """
+        if not self.matched_sample_file or not self.primary_sample_file:
+            return
+
+        if self.matched_sample_file == self.primary_sample_file:
+            self.column_rename_map = None
+            return
+
+        try:
+            matched_header = csv_utils.read_csv_header(Path(self.matched_sample_file), self.logger)
+            primary_header = csv_utils.read_csv_header(Path(self.primary_sample_file), self.logger)
+
+            if matched_header and primary_header:
+                self.column_rename_map = dict(zip(matched_header, primary_header))
+                self.logger.debug(
+                    f"Built column rename map for {self.bank_type}: "
+                    f"{self.matched_sample_file} -> {self.primary_sample_file}"
+                )
+        except Exception as e:
+            self.logger.warning(f"Failed to build column rename map: {e}")
+            self.column_rename_map = None
+
     def load_source_data(self, file_path: str) -> pd.DataFrame:
         if not Path(file_path).exists():
             raise FileNotFoundError(f"Source file not found: {file_path}")
@@ -58,6 +91,12 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
         try:
             df = pd.read_csv(file_path, delimiter=delimiter, encoding=encoding, keep_default_na=False)
             self.logger.info(f"Loaded {len(df)} rows from {file_path}")
+
+            # Normalize column names if this file matched a non-primary sample
+            if self.column_rename_map:
+                df = df.rename(columns=self.column_rename_map)
+                self.logger.debug(f"Renamed columns to match primary sample format")
+
             return df
         except Exception as e:
             self.logger.error(f"Failed to load CSV from {file_path}: {e}")
@@ -252,3 +291,28 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
         except Exception as e:
             self.logger.error(f"Failed to process file {file_path}: {e}")
             raise
+
+    def save_output(self, df: pd.DataFrame, config) -> None:
+        """
+        Save intermediate format output to file and/or console.
+
+        Args:
+            df: DataFrame in intermediate format
+            config: ConfigManager instance
+        """
+        output_config = config.get_output_config()
+        intermediate_config = output_config.get('intermediate_format', {})
+
+        destination = intermediate_config.get('destination', 'file')
+
+        if destination in ['file', 'both']:
+            file_path = intermediate_config.get('file_path', 'output/intermediate_transactions.csv')
+            df.to_csv(file_path, index=False, encoding='utf-8')
+            self.logger.info(f"Saved intermediate data to: {file_path}")
+
+        if destination in ['console', 'both']:
+            print("\n" + "=" * 80)
+            print("INTERMEDIATE FORMAT DATA:")
+            print("=" * 80)
+            print(df.to_string(index=False))
+            print("=" * 80)

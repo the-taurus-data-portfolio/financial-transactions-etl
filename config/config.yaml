@@ -50,20 +50,36 @@ source_converters:
   swedbank:
     source_schema: swedbank_source.yaml
     mapping: swedbank_to_intermediate.yaml
+    # Sample files for header detection (support multiple language versions)
+    sample_files:
+      - "data/samples/transactions/swedbank_sample_ee.csv"
+      - "data/samples/transactions/swedbank_sample_ru.csv"
+
   lhv:
     source_schema: lhv_source.yaml
     mapping: lhv_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/lhv_sample_ee.csv"
+
   seb:
     source_schema: seb_source.yaml
     mapping: seb_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/seb_sample_ee.csv"
 
-# Tiller history source configuration for deduplication
-tiller_history_source:
-  enabled: true  # Set to false to disable deduplication
-  spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"  # Replace with actual Tiller spreadsheet ID
-  worksheet_title: "Transactions"  # The title of the worksheet containing the table
-  table_name: "Table1"  # The name of the table within the sheet
-  credentials_file: "config/credentials/test-spreadsheet-credentials.json"  # Path to Google API credentials
+# Target system converters configuration
+target_converters:
+  tiller:
+    schema: tiller_target.yaml
+    mapping: intermediate_to_tiller.yaml
+    accounts_file: "config/tiller/accounts.yaml"  # Account mapping for Tiller transformation
+    # Deduplication configuration
+    deduplication:
+      enabled: true  # Set to false to disable deduplication
+      spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"  # Replace with actual Tiller spreadsheet ID
+      worksheet_title: "Transactions"  # The title of the worksheet containing the table
+      table_name: "Table1"  # The name of the table within the sheet
+      credentials_file: "config/credentials/test-spreadsheet-credentials.json"  # Path to Google API credentials
 
 # Schema and mapping paths
 paths:
