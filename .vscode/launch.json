@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run  (financial transactions)",
+            "type": "debugpy",
+        
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py", 
+            "args": [
+                "--input-dir",
+                "data/transactions",
+                "--config",
+                "config/config.yaml"
+            ],
+            "console": "integratedTerminal",
+        }, 
+        {
+            "name": "Run tests (financial transactions)",
+            "type": "debugpy",
+        
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py", 
+            "args": [
+                "--input-dir",
+                "data/samples/transactions",
+                "--config",
+                "config/config_test.yaml"
+            ],
+            "console": "integratedTerminal",
+        }
+    ]
+}
