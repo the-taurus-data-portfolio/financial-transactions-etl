@@ -2,7 +2,9 @@ output/
 .venv/
 venv/
 .idea/
+.vscode/
 data/transactions/
 logs/
 config/credentials/
 config/tiller/accounts.yaml
+**/__pycache__/
