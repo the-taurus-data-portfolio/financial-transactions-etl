@@ -1,0 +1,78 @@
+# config/mappings/lhv_legacy_to_intermediate.yaml
+mapping_name: "LHV Legacy Source to Intermediate Mapping"
+description: "Rules for transforming LHV bank's legacy (19 columns) transaction CSV data into the universal intermediate transaction format."
+source_schema: "lhv_legacy_source.yaml"
+target_schema: "intermediate.yaml"
+
+field_mappings:
+  - source_field: "Kuupäev"
+    target_field: "TransactionDate"
+    transformation:
+      type: "date_format_conversion"
+      source_format: "YYYY-MM-DD"
+      target_format: "DD.MM.YYYY"
+      notes: "Direct copy of date, ensuring format consistency."
+
+  - source_field: "Summa"
+    target_field: "Amount"
+    transformation:
+      type: "calculated_float"
+      rules:
+        - action: "replace_decimal_separator"
+          from: ","
+          to: "."
+          notes: "Change comma decimal separator to dot."
+        - action: "apply_sign_based_on_field"
+          field_for_sign: "Deebet/Kreedit (D/C)"
+          debit_value: "D"
+          credit_value: "C"
+          notes: "Multiply by -1 if 'Deebet/Kreedit (D/C)' is 'D', otherwise keep positive."
+
+  - source_field: "Valuuta"
+    target_field: "Currency"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Selgitus"
+    target_field: "Description"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Kliendi konto"
+    target_field: "BudgetAccountNumber"
+    transformation:
+      type: "anonymize_iban"
+      rules:
+        - action: "keep_country_prefix"
+          length: 2
+        - action: "keep_last_n_digits"
+          n: 5
+        - action: "replace_middle_with"
+          character: "*"
+          count: 3
+      notes: "Anonymize IBAN: keep country prefix, replace middle with '***', and keep last 5 digits."
+
+  - source_field: "Saaja/maksja nimi"
+    target_field: "OtherAccountName"
+    transformation:
+      type: "direct_copy"
+
+  - source_field: "Kande viide"
+    target_field: "TransactionID"
+    transformation:
+      type: "prefix_string"
+      prefix: "LH"
+      notes: "Map 'Kande viide' to 'TransactionID' and prefix with 'LH' for uniqueness."
+
+unmapped_source_fields:
+ - "Dokumendi number"
+ - "Saaja/maksja konto"
+ - "Saaja panga kood"
+ - "Tühi"
+ - "Viitenumber"
+ - "Arhiveerimistunnus"
+ - "Teenustasu"
+ - "Isikukood või registrikood"
+ - "Saaja/maksja panga BIC"
+ - "Makse algataja nimi"
+ - "Konto teenusepakkuja viide"

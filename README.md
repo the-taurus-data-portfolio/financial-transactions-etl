@@ -161,6 +161,11 @@ source_converters:
     mapping: lhv_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/lhv_sample_ee.csv"
+  lhv_legacy:
+    source_schema: lhv_legacy_source.yaml
+    mapping: lhv_legacy_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/lhv_sample_legacy_ee.csv"
   seb:
     source_schema: seb_source.yaml
     mapping: seb_to_intermediate.yaml
@@ -357,7 +362,7 @@ The pipeline uses **exact header matching** for automatic bank detection:
 Currently supported (all with automatic header-based detection):
 - **Swedbank Estonia**: Full support with schema and mappings (Estonian and Russian language headers)
 - **SEB Estonia**: Full support with schema and mappings
-- **LHV Estonia**: Full support with schema and mappings
+- **LHV Estonia**: Full support for both modern (16-column) and legacy (19-column) CSV formats
 
 The pipeline automatically detects which bank a CSV file belongs to by analyzing its headers.
 

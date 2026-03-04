@@ -61,6 +61,12 @@ source_converters:
     sample_files:
       - "data/samples/transactions/lhv_sample_ee.csv"
 
+  lhv_legacy:
+    source_schema: lhv_legacy_source.yaml
+    mapping: lhv_legacy_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/lhv_sample_legacy_ee.csv"
+
   seb:
     source_schema: seb_source.yaml
     mapping: seb_to_intermediate.yaml

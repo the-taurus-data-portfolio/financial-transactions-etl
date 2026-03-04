@@ -1,10 +1,10 @@
 # config/schemas/lhv_source.yaml
 schema_name: "LHV Source Transaction Schema"
-description: "Defines the structure and types for LHV bank's exported transaction CSV files."
+description: "Defines the structure and types for LHV bank's modern (16 columns) exported transaction CSV files."
 file_details:
   delimiter: ","
   encoding: "utf-8"
-  header: true # Assuming the first row is always headers
+  header: true
   quote_char: "\""
 
 fields:
@@ -21,11 +21,11 @@ fields:
     example: "123456"
 
   - name: "Kuupäev"
-    type: "string" # Will be converted later, keep as string from source
+    type: "string"
     description: "Date of the transaction."
     required: true
-    format: "DD.MM.YYYY" # Common Estonian date format
-    example: "01.07.2025"
+    format: "YYYY-MM-DD"
+    example: "2026-02-14"
 
   - name: "Saaja/maksja konto"
     type: "string"
@@ -39,18 +39,6 @@ fields:
     required: true
     example: "OÜ Näidisettevõte"
 
-  - name: "Saaja panga kood"
-    type: "string"
-    description: "Counterparty's bank code."
-    required: false
-    example: "767"
-
-  - name: "Tühi"
-    type: "string"
-    description: "An empty field, likely for padding or future use. Can be ignored."
-    required: false
-    example: ""
-
   - name: "Deebet/Kreedit (D/C)"
     type: "string"
     description: "Indicates if the amount is Debit (D) or Credit (C)."
@@ -60,9 +48,9 @@ fields:
 
   - name: "Summa"
     type: "float"
-    description: "Transaction amount. Will need to be combined with D/C to determine sign."
+    description: "Transaction amount. Combined with D/C to determine sign, but usually already signed in LHV exports."
     required: true
-    decimal_separator: "." # Assuming dot as decimal separator
+    decimal_separator: "."
     example: "150.75"
 
   - name: "Viitenumber"
@@ -82,13 +70,6 @@ fields:
     description: "Description or explanation of the transaction."
     required: true
     example: "Rendimaksu tasumine"
-
-  - name: "Teenustasu"
-    type: "float"
-    description: "Service fee associated with the transaction, if any."
-    required: false
-    decimal_separator: "."
-    example: "0.50"
 
   - name: "Valuuta"
     type: "string"
@@ -117,7 +98,7 @@ fields:
   - name: "Kande viide"
     type: "string"
     description: "Reference for the entry."
-    required: false
+    required: true
     example: "REF-001"
 
   - name: "Konto teenusepakkuja viide"
