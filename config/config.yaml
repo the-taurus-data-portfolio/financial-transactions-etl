@@ -29,11 +29,13 @@ processing:
   # Error handling
   strict_mode: true  # If true, stop on first error; if false, continue and log errors
   skip_invalid_rows: true
+  copy_to_clipboard: true
 
-  # Data validation
-  validate_schemas: true
-  validate_amounts: true  # Check for reasonable amount values
-  max_amount_threshold: 1000000  # Flag transactions above this amount
+# Archiving configuration
+archiving:
+  enabled: true
+  archive_dir: "data/archive"
+  add_timestamp: false
 
 # File processing
 files:

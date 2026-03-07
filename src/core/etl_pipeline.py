@@ -16,7 +16,8 @@ from converters.target_converter_manager import TargetConverterManager
 from converters.generic_source_converter import GenericSourceConverter
 from utils.logging_config import setup_logging
 from converters.bank_detector import BankDetector
-from utils.file_utils import get_input_files
+from utils.file_utils import get_input_files, LocalFileArchiver
+from utils.csv_utils import copy_df_to_clipboard
 
 
 class ETLPipeline:
@@ -28,6 +29,7 @@ class ETLPipeline:
     - Conversion from bank format to intermediate format
     - Conversion from intermediate format to target system format
     - Output generation (file and console)
+    - Optional: Copying to clipboard and archiving
     """
 
     def __init__(self, config_path: str):
@@ -42,6 +44,7 @@ class ETLPipeline:
         self.target_converter_manager = None
         self.logger = None
         self.bank_detector = None
+        self.archiver = None
 
         self._initialize(config_path)
 
@@ -66,6 +69,16 @@ class ETLPipeline:
 
             # Initialize bank detector for header-based bank detection
             self.bank_detector = BankDetector(self.config, self.logger)
+
+            # Initialize archiver if enabled
+            archiving_config = self.config.get('archiving', {})
+            if archiving_config.get('enabled', False):
+                self.archiver = LocalFileArchiver(
+                    archive_dir=archiving_config.get('archive_dir', 'data/archive'),
+                    add_timestamp=archiving_config.get('add_timestamp', False),
+                    logger=self.logger
+                )
+                self.logger.info(f"Archiving initialized: {archiving_config.get('archive_dir')}")
 
             self.logger.info("ETL Pipeline initialized successfully")
 
@@ -243,6 +256,10 @@ class ETLPipeline:
             target_name = self.target_converter_manager.get_default_target_name()
             target_converter.save_output(combined_target, self.config, target_name)
 
+            # Copy to clipboard if enabled in config
+            if self.config.get('processing', {}).get('copy_to_clipboard', False):
+                copy_df_to_clipboard(combined_target, self.logger)
+
     def run(self, input_dir: str, override_bank_type: Optional[str] = None) -> bool:
         """
         Run the complete ETL pipeline.
@@ -269,24 +286,32 @@ class ETLPipeline:
 
             # Process all files
             all_results = []
-            successful_files = 0
+            successful_files = []
 
             for csv_file in csv_files:
                 result = self.process_single_file(csv_file, override_bank_type)
                 all_results.append(result)
 
                 if result['success']:
-                    successful_files += 1
+                    successful_files.append(csv_file)
 
             # Save outputs
-            if successful_files > 0:
+            if len(successful_files) > 0:
                 self.save_outputs(all_results)
 
             # Summary
             total_files = len(csv_files)
-            failed_files = total_files - successful_files
+            count_successful = len(successful_files)
+            failed_files = total_files - count_successful
 
-            self.logger.info(f"ETL Pipeline completed: {successful_files}/{total_files} files processed successfully")
+            self.logger.info(f"ETL Pipeline completed: {count_successful}/{total_files} files processed successfully")
+
+            # Archive source files if enabled and ALL files were successful (Atomic Archiving)
+            if self.archiver and count_successful == total_files:
+                self.logger.info("Archiving input files (Batch success)")
+                self.archiver.archive(successful_files)
+            elif self.archiver and failed_files > 0:
+                self.logger.warning(f"Skipping archiving because {failed_files} file(s) failed")
 
             if failed_files > 0:
                 self.logger.warning(f"{failed_files} files failed to process")
@@ -296,7 +321,7 @@ class ETLPipeline:
                     if not result['success']:
                         self.logger.error(f"Failed: {result['file_path']} - {result['error']}")
 
-            return successful_files > 0
+            return count_successful > 0
 
         except Exception as e:
             self.logger.error(f"ETL pipeline failed: {e}")

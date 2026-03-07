@@ -205,3 +205,22 @@ class SchemaLoader(ABC):
             True if compatible, False otherwise
         """
         pass
+
+
+class SourceArchiver(ABC):
+    """
+    Abstract base class for archiving source data files after processing.
+    """
+
+    @abstractmethod
+    def archive(self, file_paths: list) -> bool:
+        """
+        Archive processed source files.
+
+        Args:
+            file_paths: List of paths to files to archive
+
+        Returns:
+            True if archiving was successful, False otherwise
+        """
+        pass

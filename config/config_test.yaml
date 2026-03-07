@@ -1,4 +1,4 @@
-# Configuration file for Bank to Tiller ETL Pipeline
+# Configuration file for Bank to Tiller ETL Pipeline - TEST CONFIG
 
 # Logging configuration
 logging:
@@ -6,42 +6,38 @@ logging:
   console: true
   file:
     enabled: true
-    path: "logs/etl_pipeline.log"
+    path: "logs/etl_pipeline_test.log"
     max_size: "10MB"
     backup_count: 5
 
 # Output configuration
 output:
   intermediate_format:
-    destination: "both"  # Options: "console", "file", "both"
-    file_path: "output/intermediate_transactions.csv"
+    destination: "both"
+    file_path: "output/intermediate_transactions_test.csv"
   tiller_format:
-    destination: "both"  # Options: "console", "file", "both"
-    file_path: "output/tiller_transactions.csv"
-    console_limit: 50  # Maximum rows to display in console
+    destination: "both"
+    file_path: "output/tiller_transactions_test.csv"
+    console_limit: 50
 
 # Processing configuration
 processing:
-  # Bank type detection (future feature)
   auto_detect_bank: false
   default_bank_type: "swedbank"
-
-  # Error handling
-  strict_mode: true  # If true, stop on first error; if false, continue and log errors
+  strict_mode: true
   skip_invalid_rows: true
+  copy_to_clipboard: true
 
-  # Data validation
-  validate_schemas: true
-  validate_amounts: true  # Check for reasonable amount values
-  max_amount_threshold: 1000000  # Flag transactions above this amount
+# Archiving configuration
+archiving:
+  enabled: true
+  archive_dir: "data/archive"
+  add_timestamp: false
 
 # File processing
 files:
-  # Input file patterns
   supported_extensions: [".csv", ".CSV"]
   encoding: "utf-8"
-
-  # CSV parsing options
   csv_options:
     skip_blank_lines: true
     strip_whitespace: true
@@ -50,7 +46,6 @@ source_converters:
   swedbank:
     source_schema: swedbank_source.yaml
     mapping: swedbank_to_intermediate.yaml
-    # Sample files for header detection (support multiple language versions)
     sample_files:
       - "data/samples/transactions/swedbank_sample_ee.csv"
       - "data/samples/transactions/swedbank_sample_ru.csv"
@@ -73,21 +68,18 @@ source_converters:
     sample_files:
       - "data/samples/transactions/seb_sample_ee.csv"
 
-# Target system converters configuration
 target_converters:
   tiller:
     schema: tiller_target.yaml
     mapping: intermediate_to_tiller.yaml
-    accounts_file: "config/tiller/accounts_sample.yaml"  # Account mapping for Tiller transformation
-    # Deduplication configuration
+    accounts_file: "config/tiller/accounts_sample.yaml"
     deduplication:
-      enabled: true  # Set to false to disable deduplication
-      spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"  # Replace with actual Tiller spreadsheet ID
-      worksheet_title: "Transactions"  # The title of the worksheet containing the table
-      table_name: "Table1"  # The name of the table within the sheet
-      credentials_file: "config/credentials/test-spreadsheet-credentials.json"  # Path to Google API credentials
+      enabled: true
+      spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"
+      worksheet_title: "Transactions"
+      table_name: "Table1"
+      credentials_file: "config/credentials/test-spreadsheet-credentials.json"
 
-# Schema and mapping paths
 paths:
   schemas_dir: "schemas"
   mappings_dir: "mappings"

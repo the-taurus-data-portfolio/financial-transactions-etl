@@ -7,4 +7,5 @@ data/transactions/
 logs/
 config/credentials/
 config/tiller/accounts.yaml
+data/archive/
 **/__pycache__/
