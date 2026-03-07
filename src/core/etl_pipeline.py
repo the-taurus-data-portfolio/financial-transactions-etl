@@ -19,6 +19,7 @@ from utils.logging_config import setup_logging
 from converters.bank_detector import BankDetector
 from core.source_providers import SourceProviderFactory
 from core.archivers import ArchiverFactory
+from utils.csv_utils import copy_df_to_clipboard
 
 
 class ETLPipeline:
@@ -224,8 +225,6 @@ class ETLPipeline:
         Args:
             all_results: List of processing results
         """
-        from utils.csv_utils import copy_df_to_clipboard
-
         # Combine all successful results
         intermediate_dfs = []
         target_dfs = []

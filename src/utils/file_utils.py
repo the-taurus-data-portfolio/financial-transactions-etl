@@ -3,8 +3,12 @@ File system utilities for locating and processing input files.
 """
 
 import logging
+import shutil
 from pathlib import Path
 from typing import List, Optional
+from datetime import datetime
+
+from core.interfaces import SourceArchiver
 
 
 def get_input_files(input_dir: str, supported_extensions: List[str],
@@ -47,10 +51,6 @@ def get_input_files(input_dir: str, supported_extensions: List[str],
     return sorted(input_files)
 
 
-import shutil
-from datetime import datetime
-from core.interfaces import SourceArchiver
-
 class LocalFileArchiver(SourceArchiver):
     """
     Archives processed files by moving them to a local archive directory.
@@ -70,18 +70,18 @@ class LocalFileArchiver(SourceArchiver):
         self.add_timestamp = add_timestamp
         self.logger = logger or logging.getLogger(__name__)
 
-    def archive(self, file_paths: List[Path]) -> bool:
+    def archive(self, file_identifiers: List[Path]) -> bool:
         """
         Move files to archive directory.
 
         Args:
-            file_paths: List of file paths to move
+            file_identifiers: List of Path objects to move
 
         Returns:
             True if all files were successfully archived, False otherwise
         """
-        if not file_paths:
-            self.logger.info("No files to archive")
+        if not file_identifiers:
+            self.logger.info("No local files to archive")
             return True
 
         try:
@@ -91,7 +91,10 @@ class LocalFileArchiver(SourceArchiver):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             success_count = 0
 
-            for source_path in file_paths:
+            for source_path in file_identifiers:
+                if not isinstance(source_path, Path):
+                    source_path = Path(source_path)
+
                 if not source_path.exists():
                     self.logger.warning(f"File not found for archiving: {source_path}")
                     continue
@@ -111,8 +114,8 @@ class LocalFileArchiver(SourceArchiver):
                 self.logger.info(f"Archived: {source_path.name} -> {target_path}")
                 success_count += 1
 
-            return success_count == len(file_paths)
+            return success_count == len(file_identifiers)
 
         except Exception as e:
-            self.logger.error(f"Failed to archive files: {e}")
+            self.logger.error(f"Failed to archive local files: {e}")
             return False

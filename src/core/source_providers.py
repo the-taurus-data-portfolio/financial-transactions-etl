@@ -8,6 +8,10 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 import io
 
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+
 from core.interfaces import SourceProvider
 from utils.file_utils import get_input_files
 
@@ -60,9 +64,6 @@ class GDriveSourceProvider(SourceProvider):
     def _authenticate(self):
         """Authenticate with Google Drive API."""
         try:
-            from google.oauth2 import service_account
-            from googleapiclient.discovery import build
-
             scopes = ['https://www.googleapis.com/auth/drive.readonly']
             creds = service_account.Credentials.from_service_account_file(
                 self.credentials_file, scopes=scopes)
@@ -93,8 +94,6 @@ class GDriveSourceProvider(SourceProvider):
     def get_file_content(self, identifier: Any) -> io.BytesIO:
         """Download GDrive file into BytesIO buffer."""
         try:
-            from googleapiclient.http import MediaIoBaseDownload
-
             request = self.service.files().get_media(fileId=identifier)
             buffer = io.BytesIO()
             downloader = MediaIoBaseDownload(buffer, request)

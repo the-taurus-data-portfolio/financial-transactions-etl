@@ -10,6 +10,7 @@ from typing import Optional
 
 from core.config_manager import ConfigManager
 from core.schema_loader import YamlSchemaLoader
+from converters.tiller_converter import TillerConverter
 
 
 class TargetConverterManager:
@@ -68,7 +69,6 @@ class TargetConverterManager:
             Initialized converter instance or None if target is not supported
         """
         if target_name == 'tiller':
-            from converters.tiller_converter import TillerConverter
             accounts_file = target_config.get('accounts_file', 'config/tiller/accounts.yaml')
             deduplication_config = target_config.get('deduplication', {})
             return TillerConverter(

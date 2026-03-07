@@ -71,6 +71,14 @@ def setup_logging(config: Dict[str, Any]) -> None:
     logger.info("Logging configuration setup completed")
 
 
+def set_verbose_logging() -> None:
+    """
+    Override root logging level to DEBUG.
+    """
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.info("Verbose logging enabled (level set to DEBUG)")
+
+
 def parse_size(size_str: str) -> int:
     """
     Parse size string to bytes.

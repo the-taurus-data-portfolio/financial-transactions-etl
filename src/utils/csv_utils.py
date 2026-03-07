@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Union
 import io
+import pyperclip
 
 
 def read_csv_header(source: Union[Path, io.BytesIO], logger: Optional[logging.Logger] = None) -> Optional[List[str]]:
@@ -116,15 +117,11 @@ def copy_df_to_clipboard(df: 'pd.DataFrame', logger: Optional[logging.Logger] = 
     logger = logger or logging.getLogger(__name__)
 
     try:
-        import pyperclip
         # Format as TSV without header for easy pasting into Google Sheets
         tsv_data = df.to_csv(sep='\t', index=False, header=False)
         pyperclip.copy(tsv_data)
         logger.info("Successfully copied transaction data to clipboard (TSV format, no header)")
         return True
-    except ImportError:
-        logger.error("Failed to copy to clipboard: 'pyperclip' module not found")
-        return False
     except Exception as e:
         logger.error(f"Failed to copy to clipboard: {e}")
         return False
