@@ -4,7 +4,8 @@ Bank detection utilities for identifying bank types from CSV headers.
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, Union
+import io
 
 from core.config_manager import ConfigManager
 from utils import csv_utils
@@ -81,12 +82,12 @@ class BankDetector:
         except Exception as e:
             self.logger.error(f"Error loading bank header signatures: {e}")
 
-    def detect_bank_from_header(self, file_path: Path) -> Tuple[Optional[str], Optional[str]]:
+    def detect_bank_from_header(self, source: Union[Path, io.BytesIO]) -> Tuple[Optional[str], Optional[str]]:
         """
         Detect bank type by matching CSV header row against known signatures.
 
         Args:
-            file_path: Path to the CSV file
+            source: Path to the CSV file or BytesIO buffer
 
         Returns:
             Tuple of (detected_bank_type, matched_sample_file_path) or (None, None) if detection fails
@@ -96,9 +97,10 @@ class BankDetector:
                 self.logger.warning("No bank header signatures loaded for detection")
                 return None, None
 
-            header_row = csv_utils.read_csv_header(file_path, self.logger)
+            header_row = csv_utils.read_csv_header(source, self.logger)
             if not header_row:
-                self.logger.warning(f"Could not read CSV header from {file_path.name}")
+                name = source.name if isinstance(source, Path) else "buffer"
+                self.logger.warning(f"Could not read CSV header from {name}")
                 return None, None
 
             header_tuple = tuple(header_row)
@@ -107,20 +109,22 @@ class BankDetector:
                 bank_type = self.bank_header_signatures[header_tuple]
                 # Find which sample file this header came from
                 matched_sample = self._find_sample_for_bank(bank_type, header_tuple)
+                name = source.name if isinstance(source, Path) else "buffer"
                 self.logger.debug(
-                    f"Detected bank type '{bank_type}' for file {file_path.name} "
-                    f"via header matching"
+                    f"Detected bank type '{bank_type}' for {name} via header matching"
                 )
                 return bank_type, matched_sample
 
+            name = source.name if isinstance(source, Path) else "buffer"
             self.logger.warning(
-                f"Could not auto-detect bank type for {file_path.name}. "
+                f"Could not auto-detect bank type for {name}. "
                 "Header does not match any known signatures."
             )
             return None, None
 
         except Exception as e:
-            self.logger.error(f"Error detecting bank type for {file_path.name}: {e}")
+            name = source.name if isinstance(source, Path) else "buffer"
+            self.logger.error(f"Error detecting bank type for {name}: {e}")
             return None, None
 
     def _find_sample_for_bank(self, bank_type: str, header_tuple: Tuple[str, ...]) -> Optional[str]:

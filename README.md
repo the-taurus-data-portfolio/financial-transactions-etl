@@ -5,12 +5,15 @@ A flexible and extensible ETL (Extract, Transform, Load) system for converting b
 ## Features
 
 - **Modular Architecture**: Easy to extend with new banks and target systems
+- **Source Ingestion Abstraction**: Support for multiple data sources (Local File System, Google Drive) via a unified provider interface
 - **Two-Step Transformation**: Bank → Intermediate → Tiller for maximum flexibility
 - **Schema-Driven**: YAML-based schemas and mapping rules
 - **Robust Error Handling**: Comprehensive logging and error recovery
 - **Multiple Output Formats**: Console display and CSV file output
 - **Configurable**: YAML-based configuration for all aspects
 - **Tiller Reconciliation (Deduplication)**: Prevents duplicate imports by checking against existing transactions in the Tiller Sheet using Transaction ID matching
+- **Atomic Archiving**: Configurable moving of processed files to local or GDrive archive folders only upon 100% batch success
+- **Clipboard Integration**: Automatic TSV export to clipboard for easy pasting into Google Sheets
 
 ## Quick Start
 
@@ -122,7 +125,7 @@ bank_to_tiller_etl/
 └── README.md
 ```
 
-## Configuration
+# Configuration
 
 Edit `config/config.yaml` to customize the pipeline behavior:
 
@@ -135,6 +138,10 @@ logging:
     enabled: true
     path: "logs/etl_pipeline.log"
 
+# Google Authentication (shared across services)
+google_auth:
+  credentials_file: "config/credentials/test-spreadsheet-credentials.json"
+
 # Output configuration
 output:
   tiller_format:
@@ -144,9 +151,32 @@ output:
 
 # Processing options
 processing:
-  strict_mode: false  # Stop on first error if true
+  strict_mode: true  # Stop on first error if true
   skip_invalid_rows: true
-  validate_schemas: true
+  copy_to_clipboard: true
+
+# Source configuration
+source:
+  type: "local"  # "local" or "gdrive"
+  local:
+    input_dir: "data/transactions"
+  gdrive:
+    input_folder_id: "your-gdrive-folder-id"
+
+# Archiving configuration
+archiving:
+  enabled: true
+  type: "local"  # "local" or "gdrive"
+  local:
+    archive_dir: "data/archive"
+    add_timestamp: false
+  gdrive:
+    archive_folder_id: "your-archive-folder-id"
+
+# File processing settings
+files:
+  supported_extensions: [".csv", ".CSV"]
+  encoding: "utf-8"
 
 # Source bank configurations with sample files for header-based detection
 source_converters:

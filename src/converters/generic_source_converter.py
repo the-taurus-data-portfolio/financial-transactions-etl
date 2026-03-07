@@ -5,6 +5,7 @@ Generic CSV to intermediate format converter, parameterized for different banks.
 
 from pathlib import Path
 from typing import Dict, Any, Optional
+import io
 
 import pandas as pd
 
@@ -80,17 +81,25 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
             self.logger.warning(f"Failed to build column rename map: {e}")
             self.column_rename_map = None
 
-    def load_source_data(self, file_path: str) -> pd.DataFrame:
-        if not Path(file_path).exists():
-            raise FileNotFoundError(f"Source file not found: {file_path}")
+    def load_source_data(self, file_content: io.BytesIO) -> pd.DataFrame:
+        """
+        Load data from source bank CSV content.
 
+        Args:
+            file_content: BytesIO buffer with CSV content
+
+        Returns:
+            DataFrame with loaded source data
+        """
         file_details = self.source_schema.get('file_details', {})
         delimiter = file_details.get('delimiter', ';')
         encoding = file_details.get('encoding', 'utf-8')
 
         try:
-            df = pd.read_csv(file_path, delimiter=delimiter, encoding=encoding, keep_default_na=False)
-            self.logger.info(f"Loaded {len(df)} rows from {file_path}")
+            # Ensure we are at the start of the buffer
+            file_content.seek(0)
+            df = pd.read_csv(file_content, delimiter=delimiter, encoding=encoding, keep_default_na=False)
+            self.logger.info(f"Loaded {len(df)} rows from buffer")
 
             # Normalize column names if this file matched a non-primary sample
             if self.column_rename_map:
@@ -99,7 +108,7 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
 
             return df
         except Exception as e:
-            self.logger.error(f"Failed to load CSV from {file_path}: {e}")
+            self.logger.error(f"Failed to load CSV from buffer: {e}")
             raise ValueError(f"Invalid CSV file format or encoding: {e}")
 
     def validate_source_schema(self, df: pd.DataFrame) -> bool:
@@ -136,6 +145,11 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
                 filtered_df = filtered_df[filtered_df[field].astype(str) == value]
             elif operator == 'not_equals':
                 filtered_df = filtered_df[filtered_df[field] != value]
+            elif operator == 'not_in':
+                if isinstance(value, list):
+                    filtered_df = filtered_df[~filtered_df[field].isin(value)]
+                else:
+                    self.logger.warning(f"Filter value for 'not_in' operator must be a list: {value}")
             else:
                 self.logger.warning(f"Unsupported filter operator: {operator}")
 
@@ -156,7 +170,7 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
 
             if source_field not in df.columns:
                 self.logger.warning(f"Source field '{source_field}' not found in source DataFrame for mapping to '{target_field}'. Skipping transformation for this field.")
-                transformed_data[target_field] = pd.Series(dtype='object')
+                transformed_data[target_field] = pd.Series(dtype='object', index=df.index)
                 continue
             else:
                 transformed_series = self._apply_transformation(
@@ -259,20 +273,18 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
     def get_bank_type(self) -> str:
         return self.bank_type
 
-    def process_file(self, file_path: str) -> pd.DataFrame:
+    def process_content(self, file_content: io.BytesIO) -> pd.DataFrame:
         """
-        Process complete file from source to intermediate format.
+        Process CSV content from buffer to intermediate format.
 
         Args:
-            file_path: Path to source CSV file
+            file_content: BytesIO buffer with CSV content
 
         Returns:
             Processed DataFrame in intermediate format
         """
-        self.logger.info(f"Starting processing of file: {file_path}")
-
         try:
-            df = self.load_source_data(file_path)
+            df = self.load_source_data(file_content)
 
             if not self.validate_source_schema(df):
                 raise ValueError("Source schema validation failed")
@@ -285,11 +297,10 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
 
             result_df = self.transform_to_intermediate(filtered_df)
 
-            self.logger.info(f"Successfully processed file: {file_path}")
             return result_df
 
         except Exception as e:
-            self.logger.error(f"Failed to process file {file_path}: {e}")
+            self.logger.error(f"Failed to process content: {e}")
             raise
 
     def save_output(self, df: pd.DataFrame, config) -> None:

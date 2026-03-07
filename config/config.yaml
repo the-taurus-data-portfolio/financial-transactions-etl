@@ -10,6 +10,10 @@ logging:
     max_size: "10MB"
     backup_count: 5
 
+# Google Authentication
+google_auth:
+  credentials_file: "config/credentials/test-spreadsheet-credentials.json"
+
 # Output configuration
 output:
   intermediate_format:
@@ -22,72 +26,74 @@ output:
 
 # Processing configuration
 processing:
-  # Bank type detection (future feature)
   auto_detect_bank: false
   default_bank_type: "swedbank"
-
-  # Error handling
-  strict_mode: true  # If true, stop on first error; if false, continue and log errors
+  strict_mode: true
   skip_invalid_rows: true
   copy_to_clipboard: true
+
+# Source configuration
+source:
+  type: "local"  # "local" or "gdrive"
+  local:
+    input_dir: "data/transactions"
+  gdrive:
+    input_folder_id: "your-input-folder-id-here"
 
 # Archiving configuration
 archiving:
   enabled: true
-  archive_dir: "data/archive"
-  add_timestamp: false
+  type: "local"  # "local" or "gdrive"
+  local:
+    archive_dir: "data/archive"
+    add_timestamp: false
+  gdrive:
+    archive_folder_id: "your-archive-folder-id-here"
 
-# File processing
+# File processing settings
 files:
-  # Input file patterns
   supported_extensions: [".csv", ".CSV"]
   encoding: "utf-8"
-
-  # CSV parsing options
   csv_options:
     skip_blank_lines: true
     strip_whitespace: true
 
+# Bank source configurations
 source_converters:
   swedbank:
     source_schema: swedbank_source.yaml
     mapping: swedbank_to_intermediate.yaml
-    # Sample files for header detection (support multiple language versions)
     sample_files:
       - "data/samples/transactions/swedbank_sample_ee.csv"
       - "data/samples/transactions/swedbank_sample_ru.csv"
-
   lhv:
     source_schema: lhv_source.yaml
     mapping: lhv_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/lhv_sample_ee.csv"
-
   lhv_legacy:
     source_schema: lhv_legacy_source.yaml
     mapping: lhv_legacy_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/lhv_sample_legacy_ee.csv"
-
   seb:
     source_schema: seb_source.yaml
     mapping: seb_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/seb_sample_ee.csv"
 
-# Target system converters configuration
+# Target system configurations
 target_converters:
   tiller:
     schema: tiller_target.yaml
     mapping: intermediate_to_tiller.yaml
-    accounts_file: "config/tiller/accounts.yaml"  # Account mapping for Tiller transformation
-    # Deduplication configuration
+    accounts_file: "config/tiller/accounts.yaml"
     deduplication:
-      enabled: true  # Set to false to disable deduplication
-      spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"  # Replace with actual Tiller spreadsheet ID
-      worksheet_title: "Transactions"  # The title of the worksheet containing the table
-      table_name: "Table1"  # The name of the table within the sheet
-      credentials_file: "config/credentials/test-spreadsheet-credentials.json"  # Path to Google API credentials
+      enabled: true
+      spreadsheet_id: "1c2c-EUCJJW5RQgCwqoVXDU229RIP9OYxQY7opR-XBko"
+      worksheet_title: "Transactions"
+      table_name: "Table1"
+      credentials_file: "config/credentials/test-spreadsheet-credentials.json"
 
 # Schema and mapping paths
 paths:

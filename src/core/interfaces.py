@@ -3,9 +3,39 @@ Abstract base classes defining interfaces for data converters.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+import io
 
 import pandas as pd
+
+
+class SourceProvider(ABC):
+    """
+    Abstract base class for providing access to source data files.
+    """
+
+    @abstractmethod
+    def list_files(self) -> List[Dict[str, Any]]:
+        """
+        List metadata for available files.
+
+        Returns:
+            List of dictionaries containing file metadata (e.g., name, identifier)
+        """
+        pass
+
+    @abstractmethod
+    def get_file_content(self, identifier: Any) -> io.BytesIO:
+        """
+        Get the content of a file.
+
+        Args:
+            identifier: Implementation-specific file identifier (e.g., path, ID)
+
+        Returns:
+            File content as BytesIO buffer
+        """
+        pass
 
 
 class SourceConverter(ABC):
@@ -15,18 +45,17 @@ class SourceConverter(ABC):
     """
 
     @abstractmethod
-    def load_source_data(self, file_path: str) -> pd.DataFrame:
+    def load_source_data(self, file_content: io.BytesIO) -> pd.DataFrame:
         """
-        Load data from source bank CSV file.
+        Load data from source bank CSV content.
 
         Args:
-            file_path: Path to the source CSV file
+            file_content: BytesIO buffer with CSV content
 
         Returns:
             DataFrame with loaded source data
 
         Raises:
-            FileNotFoundError: If file doesn't exist
             ValueError: If file format is invalid
         """
         pass
@@ -213,12 +242,12 @@ class SourceArchiver(ABC):
     """
 
     @abstractmethod
-    def archive(self, file_paths: list) -> bool:
+    def archive(self, file_identifiers: List[Any]) -> bool:
         """
         Archive processed source files.
 
         Args:
-            file_paths: List of paths to files to archive
+            file_identifiers: List of identifiers to files to archive
 
         Returns:
             True if archiving was successful, False otherwise

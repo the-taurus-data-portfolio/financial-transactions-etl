@@ -4,7 +4,7 @@ Configuration management for the ETL pipeline.
 
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import yaml
 
@@ -85,6 +85,17 @@ class ConfigManager:
             'file': {'enabled': True, 'path': 'logs/etl_pipeline.log'}
         })
 
+    def get_google_auth_config(self) -> Dict[str, Any]:
+        """
+        Get Google authentication configuration.
+
+        Returns:
+            Google auth configuration dictionary
+        """
+        return self.get('google_auth', {
+            'credentials_file': 'config/credentials/test-spreadsheet-credentials.json'
+        })
+
     def get_output_config(self) -> Dict[str, Any]:
         """
         Get output configuration.
@@ -118,7 +129,8 @@ class ConfigManager:
             'skip_invalid_rows': True,
             'validate_schemas': True,
             'validate_amounts': True,
-            'max_amount_threshold': 1000000
+            'max_amount_threshold': 1000000,
+            'copy_to_clipboard': True
         })
 
     def get_file_config(self) -> Dict[str, Any]:
@@ -217,8 +229,14 @@ class ConfigManager:
                 path.mkdir(parents=True, exist_ok=True)
                 self.logger.info(f"Created directory: {path}")
 
-    def get_tiller_history_source(self) -> Dict[str, Any]:
-        return self.get("tiller_history_source")
+        # Also ensure local archive directory if local archiving is enabled
+        archiving_config = self.get('archiving', {})
+        if archiving_config.get('enabled', False) and archiving_config.get('type') == 'local':
+            archive_dir = archiving_config.get('local', {}).get('archive_dir', 'data/archive')
+            archive_path = Path(archive_dir)
+            if not archive_path.exists():
+                archive_path.mkdir(parents=True, exist_ok=True)
+                self.logger.info(f"Created local archive directory: {archive_path}")
 
     def __str__(self) -> str:
         """String representation of configuration."""

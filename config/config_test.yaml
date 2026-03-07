@@ -2,13 +2,17 @@
 
 # Logging configuration
 logging:
-  level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "DEBUG"
   console: true
   file:
     enabled: true
     path: "logs/etl_pipeline_test.log"
     max_size: "10MB"
     backup_count: 5
+
+# Google Authentication
+google_auth:
+  credentials_file: "config/credentials/test-spreadsheet-credentials.json"
 
 # Output configuration
 output:
@@ -28,13 +32,25 @@ processing:
   skip_invalid_rows: true
   copy_to_clipboard: true
 
+# Source configuration
+source:
+  type: "gdrive"
+  local:
+    input_dir: "data/test_input"
+  gdrive:
+    input_folder_id: "1s6Nw0fk70nwsRkcJnwXIqOQYyBkOxvrU"
+
 # Archiving configuration
 archiving:
   enabled: true
-  archive_dir: "data/archive"
-  add_timestamp: false
+  type: "gdrive"
+  local:
+    archive_dir: "data/archive"
+    add_timestamp: false
+  gdrive:
+    archive_folder_id: "1rIxTb8H6lVn5U0-RSIvdjBBDafxRYbOL"
 
-# File processing
+# File processing settings
 files:
   supported_extensions: [".csv", ".CSV"]
   encoding: "utf-8"
@@ -42,6 +58,7 @@ files:
     skip_blank_lines: true
     strip_whitespace: true
 
+# Bank source configurations
 source_converters:
   swedbank:
     source_schema: swedbank_source.yaml
@@ -49,25 +66,23 @@ source_converters:
     sample_files:
       - "data/samples/transactions/swedbank_sample_ee.csv"
       - "data/samples/transactions/swedbank_sample_ru.csv"
-
   lhv:
     source_schema: lhv_source.yaml
     mapping: lhv_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/lhv_sample_ee.csv"
-
   lhv_legacy:
     source_schema: lhv_legacy_source.yaml
     mapping: lhv_legacy_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/lhv_sample_legacy_ee.csv"
-
   seb:
     source_schema: seb_source.yaml
     mapping: seb_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/seb_sample_ee.csv"
 
+# Target system configurations
 target_converters:
   tiller:
     schema: tiller_target.yaml
@@ -80,6 +95,7 @@ target_converters:
       table_name: "Table1"
       credentials_file: "config/credentials/test-spreadsheet-credentials.json"
 
+# Schema and mapping paths
 paths:
   schemas_dir: "schemas"
   mappings_dir: "mappings"

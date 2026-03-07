@@ -5,17 +5,18 @@ Utility functions for CSV file operations.
 import csv
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
+import io
 
 
-def read_csv_header(file_path: Path, logger: Optional[logging.Logger] = None) -> Optional[List[str]]:
+def read_csv_header(source: Union[Path, io.BytesIO], logger: Optional[logging.Logger] = None) -> Optional[List[str]]:
     """
-    Read CSV header row from a file, auto-detecting delimiter.
+    Read CSV header row from a file path or buffer, auto-detecting delimiter.
 
     Tries delimiters in order: semicolon, comma, tab.
 
     Args:
-        file_path: Path to CSV file
+        source: Path to CSV file or BytesIO buffer
         logger: Optional logger instance for debug messages
 
     Returns:
@@ -24,30 +25,45 @@ def read_csv_header(file_path: Path, logger: Optional[logging.Logger] = None) ->
     logger = logger or logging.getLogger(__name__)
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for delimiter in [';', ',', '\t']:
-                f.seek(0)
-                try:
-                    reader = csv.reader(f, delimiter=delimiter)
-                    header_row = next(reader, None)
-                    if header_row:
-                        return [col.strip().strip('"') for col in header_row]
-                except Exception:
-                    continue
-        return None
+        if isinstance(source, Path):
+            with open(source, 'r', encoding='utf-8') as f:
+                return _read_header_from_file_object(f, logger)
+        else:
+            # Handle BytesIO
+            source.seek(0)
+            # Use TextIOWrapper to read BytesIO as text
+            wrapper = io.TextIOWrapper(source, encoding='utf-8', newline='')
+            header = _read_header_from_file_object(wrapper, logger)
+            # Detach to prevent wrapper from closing the underlying buffer
+            wrapper.detach()
+            return header
     except Exception as e:
-        logger.debug(f"Error reading CSV header from {file_path.name}: {e}")
+        logger.debug(f"Error reading CSV header: {e}")
         return None
 
 
-def detect_csv_delimiter(file_path: Path, logger: Optional[logging.Logger] = None) -> str:
+def _read_header_from_file_object(f, logger):
+    """Internal helper to read header from a file-like object."""
+    for delimiter in [';', ',', '\t']:
+        f.seek(0)
+        try:
+            reader = csv.reader(f, delimiter=delimiter)
+            header_row = next(reader, None)
+            if header_row:
+                return [col.strip().strip('"') for col in header_row]
+        except Exception:
+            continue
+    return None
+
+
+def detect_csv_delimiter(source: Union[Path, io.BytesIO], logger: Optional[logging.Logger] = None) -> str:
     """
-    Detect the CSV delimiter used in a file.
+    Detect the CSV delimiter used in a file path or buffer.
 
     Tries delimiters in order: semicolon, comma, tab.
 
     Args:
-        file_path: Path to CSV file
+        source: Path to CSV file or BytesIO buffer
         logger: Optional logger instance
 
     Returns:
@@ -56,21 +72,33 @@ def detect_csv_delimiter(file_path: Path, logger: Optional[logging.Logger] = Non
     logger = logger or logging.getLogger(__name__)
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            for delimiter in [';', ',', '\t']:
-                f.seek(0)
-                try:
-                    reader = csv.reader(f, delimiter=delimiter)
-                    header_row = next(reader, None)
-                    if header_row and len(header_row) > 1:
-                        logger.debug(f"Detected CSV delimiter: {repr(delimiter)}")
-                        return delimiter
-                except Exception:
-                    continue
+        if isinstance(source, Path):
+            with open(source, 'r', encoding='utf-8') as f:
+                return _detect_delimiter_from_file_object(f, logger)
+        else:
+            source.seek(0)
+            wrapper = io.TextIOWrapper(source, encoding='utf-8', newline='')
+            delimiter = _detect_delimiter_from_file_object(wrapper, logger)
+            wrapper.detach()
+            return delimiter
     except Exception as e:
         logger.debug(f"Error detecting CSV delimiter: {e}")
 
-    logger.debug("Could not detect delimiter, using default: semicolon")
+    return ';'
+
+
+def _detect_delimiter_from_file_object(f, logger):
+    """Internal helper to detect delimiter from a file-like object."""
+    for delimiter in [';', ',', '\t']:
+        f.seek(0)
+        try:
+            reader = csv.reader(f, delimiter=delimiter)
+            header_row = next(reader, None)
+            if header_row and len(header_row) > 1:
+                logger.debug(f"Detected CSV delimiter: {repr(delimiter)}")
+                return delimiter
+        except Exception:
+            continue
     return ';'
 
 

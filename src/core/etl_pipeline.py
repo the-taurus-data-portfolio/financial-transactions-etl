@@ -7,6 +7,7 @@ Manages the complete flow from CSV input through intermediate format to target s
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+import io
 
 import pandas as pd
 
@@ -16,8 +17,8 @@ from converters.target_converter_manager import TargetConverterManager
 from converters.generic_source_converter import GenericSourceConverter
 from utils.logging_config import setup_logging
 from converters.bank_detector import BankDetector
-from utils.file_utils import get_input_files, LocalFileArchiver
-from utils.csv_utils import copy_df_to_clipboard
+from core.source_providers import SourceProviderFactory
+from core.archivers import ArchiverFactory
 
 
 class ETLPipeline:
@@ -25,11 +26,12 @@ class ETLPipeline:
     Main ETL pipeline orchestrator for bank transaction processing.
 
     Coordinates:
+    - Data ingestion via SourceProvider
     - Bank detection from CSV headers
     - Conversion from bank format to intermediate format
     - Conversion from intermediate format to target system format
     - Output generation (file and console)
-    - Optional: Copying to clipboard and archiving
+    - Optional: Copying to clipboard and archiving via SourceArchiver
     """
 
     def __init__(self, config_path: str):
@@ -44,6 +46,7 @@ class ETLPipeline:
         self.target_converter_manager = None
         self.logger = None
         self.bank_detector = None
+        self.source_provider = None
         self.archiver = None
 
         self._initialize(config_path)
@@ -70,15 +73,11 @@ class ETLPipeline:
             # Initialize bank detector for header-based bank detection
             self.bank_detector = BankDetector(self.config, self.logger)
 
-            # Initialize archiver if enabled
-            archiving_config = self.config.get('archiving', {})
-            if archiving_config.get('enabled', False):
-                self.archiver = LocalFileArchiver(
-                    archive_dir=archiving_config.get('archive_dir', 'data/archive'),
-                    add_timestamp=archiving_config.get('add_timestamp', False),
-                    logger=self.logger
-                )
-                self.logger.info(f"Archiving initialized: {archiving_config.get('archive_dir')}")
+            # Initialize source provider
+            self.source_provider = SourceProviderFactory.create(self.config, self.logger)
+
+            # Initialize archiver
+            self.archiver = ArchiverFactory.create(self.config, self.logger)
 
             self.logger.info("ETL Pipeline initialized successfully")
 
@@ -90,26 +89,30 @@ class ETLPipeline:
             raise
 
     def process_single_file(
-        self, file_path: Path, override_bank_type: Optional[str] = None
+        self, file_metadata: Dict[str, Any], file_content: io.BytesIO, override_bank_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Process a single CSV file through the complete pipeline.
+        Process a single CSV file's content through the complete pipeline.
 
         Args:
-            file_path: Path to CSV file
+            file_metadata: Dictionary with file metadata (name, identifier)
+            file_content: BytesIO buffer with CSV content
             override_bank_type: Optional bank type to override auto-detection
 
         Returns:
             Processing results dictionary
         """
-        self.logger.info(f"Processing file: {file_path.name}")
+        file_name = file_metadata['name']
+        file_id = file_metadata['identifier']
+        self.logger.info(f"Processing file: {file_name} (ID: {file_id})")
 
         # Get default target converter and its name
         target_converter = self.target_converter_manager.get_default_converter()
         target_name = self.target_converter_manager.get_default_target_name()
 
         results = {
-            'file_path': str(file_path),
+            'file_name': file_name,
+            'file_identifier': file_id,
             'success': False,
             'error': None,
             'bank_type': None,
@@ -127,14 +130,14 @@ class ETLPipeline:
             results['error'] = error_msg
             return results
 
-        # Determine bank type: manual override takes precedence over auto-detection
+        # Determine bank type
         detected_bank_type = override_bank_type
         matched_sample_file = None
         if not detected_bank_type:
-            detected_bank_type, matched_sample_file = self.bank_detector.detect_bank_from_header(file_path)
+            detected_bank_type, matched_sample_file = self.bank_detector.detect_bank_from_header(file_content)
 
         if not detected_bank_type:
-            error_msg = f"Could not determine bank type for file '{file_path.name}'"
+            error_msg = f"Could not determine bank type for file '{file_name}'"
             self.logger.warning(error_msg)
             results['error'] = error_msg
             return results
@@ -162,10 +165,10 @@ class ETLPipeline:
             results['error'] = error_msg
             return results
 
-        # Get primary sample file (first in config) for column name normalization
+        # Get primary sample file
         primary_sample_file = self.bank_detector.get_primary_sample_file(detected_bank_type)
 
-        # Initialize converter for the detected bank
+        # Initialize converter
         try:
             source_converter = GenericSourceConverter(
                 schema_loader=self.schema_loader,
@@ -182,9 +185,9 @@ class ETLPipeline:
             return results
 
         try:
-            # Step 1: Convert source to intermediate
-            self.logger.info("Step 1: Converting source to intermediate format")
-            intermediate_df = source_converter.process_file(str(file_path))
+            # Step 1: Convert source content to intermediate
+            self.logger.info("Step 1: Converting source content to intermediate format")
+            intermediate_df = source_converter.process_content(file_content)
 
             if len(intermediate_df) == 0:
                 self.logger.warning("No data produced in intermediate format")
@@ -201,11 +204,11 @@ class ETLPipeline:
             results['target_data'] = target_df
             results['success'] = True
 
-            self.logger.info(f"Successfully processed {file_path.name}: "
+            self.logger.info(f"Successfully processed {file_name}: "
                              f"{results['intermediate_rows']} -> {results['target_rows']} transactions")
 
         except Exception as e:
-            error_msg = f"Failed to process {file_path.name}: {e}"
+            error_msg = f"Failed to process {file_name}: {e}"
             self.logger.error(error_msg)
             results['error'] = str(e)
 
@@ -221,6 +224,8 @@ class ETLPipeline:
         Args:
             all_results: List of processing results
         """
+        from utils.csv_utils import copy_df_to_clipboard
+
         # Combine all successful results
         intermediate_dfs = []
         target_dfs = []
@@ -236,8 +241,6 @@ class ETLPipeline:
             return
 
         # Get source converter to use for intermediate output
-        # We create a minimal converter just for saving intermediate output
-        # In a multi-bank scenario, all intermediate data follows same format
         source_converter = GenericSourceConverter(
             schema_loader=self.schema_loader,
             bank_type='generic',
@@ -260,66 +263,77 @@ class ETLPipeline:
             if self.config.get('processing', {}).get('copy_to_clipboard', False):
                 copy_df_to_clipboard(combined_target, self.logger)
 
-    def run(self, input_dir: str, override_bank_type: Optional[str] = None) -> bool:
+    def run(self, input_dir: Optional[str] = None, override_bank_type: Optional[str] = None) -> bool:
         """
         Run the complete ETL pipeline.
 
         Args:
-            input_dir: Directory containing CSV files to process
-            override_bank_type: Optional bank type to override auto-detection for all files
+            input_dir: Optional override for local input directory
+            override_bank_type: Optional bank type to override auto-detection
 
         Returns:
             True if processing was successful, False otherwise
         """
-        self.logger.info(f"Starting ETL pipeline for directory: {input_dir}")
-        if override_bank_type:
-            self.logger.info(f"Using bank override: {override_bank_type}")
+        self.logger.info("Starting ETL pipeline")
+
+        # Handle local input_dir override if provider is local
+        if input_dir and hasattr(self.source_provider, 'input_dir'):
+            self.logger.info(f"Overriding local input directory: {input_dir}")
+            self.source_provider.input_dir = input_dir
 
         try:
-            # Find input files
-            supported_extensions = self.config.get_supported_extensions()
-            csv_files = get_input_files(input_dir, supported_extensions, self.logger)
+            # Find input files via provider
+            files_metadata = self.source_provider.list_files()
 
-            if not csv_files:
-                self.logger.error("No CSV files found to process")
+            if not files_metadata:
+                self.logger.error("No files found to process")
                 return False
+
+            self.logger.info(f"Found {len(files_metadata)} files to process")
 
             # Process all files
             all_results = []
-            successful_files = []
+            successful_identifiers = []
 
-            for csv_file in csv_files:
-                result = self.process_single_file(csv_file, override_bank_type)
-                all_results.append(result)
+            for metadata in files_metadata:
+                try:
+                    content = self.source_provider.get_file_content(metadata['identifier'])
+                    result = self.process_single_file(metadata, content, override_bank_type)
+                    all_results.append(result)
 
-                if result['success']:
-                    successful_files.append(csv_file)
+                    if result['success']:
+                        successful_identifiers.append(metadata['identifier'])
+                except Exception as e:
+                    self.logger.error(f"Failed to fetch content for {metadata['name']}: {e}")
+                    all_results.append({
+                        'file_name': metadata['name'],
+                        'success': False,
+                        'error': str(e)
+                    })
 
             # Save outputs
-            if len(successful_files) > 0:
+            if len(successful_identifiers) > 0:
                 self.save_outputs(all_results)
 
             # Summary
-            total_files = len(csv_files)
-            count_successful = len(successful_files)
+            total_files = len(files_metadata)
+            count_successful = len(successful_identifiers)
             failed_files = total_files - count_successful
 
             self.logger.info(f"ETL Pipeline completed: {count_successful}/{total_files} files processed successfully")
 
-            # Archive source files if enabled and ALL files were successful (Atomic Archiving)
+            # Archive source files if enabled and ALL files were successful
             if self.archiver and count_successful == total_files:
-                self.logger.info("Archiving input files (Batch success)")
-                self.archiver.archive(successful_files)
+                self.logger.info("Archiving source files (Batch success)")
+                self.archiver.archive(successful_identifiers)
             elif self.archiver and failed_files > 0:
                 self.logger.warning(f"Skipping archiving because {failed_files} file(s) failed")
 
             if failed_files > 0:
                 self.logger.warning(f"{failed_files} files failed to process")
-
-                # Log failed files
                 for result in all_results:
                     if not result['success']:
-                        self.logger.error(f"Failed: {result['file_path']} - {result['error']}")
+                        self.logger.error(f"Failed: {result.get('file_name')} - {result['error']}")
 
             return count_successful > 0
 
