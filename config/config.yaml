@@ -38,7 +38,7 @@ source:
   local:
     input_dir: "data/transactions"
   gdrive:
-    input_folder_id: "your-input-folder-id-here"
+    input_folder_id: "1s6Nw0fk70nwsRkcJnwXIqOQYyBkOxvrU"
 
 # Archiving configuration
 archiving:
@@ -48,7 +48,7 @@ archiving:
     archive_dir: "data/archive"
     add_timestamp: false
   gdrive:
-    archive_folder_id: "your-archive-folder-id-here"
+    archive_folder_id: "1rIxTb8H6lVn5U0-RSIvdjBBDafxRYbOL"
 
 # File processing settings
 files:
@@ -81,6 +81,11 @@ source_converters:
     mapping: seb_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/seb_sample_ee.csv"
+  luminor:
+    source_schema: luminor_source.yaml
+    mapping: luminor_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/luminor_sample_ee.csv"
 
 # Target system configurations
 target_converters:

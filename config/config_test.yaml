@@ -81,6 +81,11 @@ source_converters:
     mapping: seb_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/seb_sample_ee.csv"
+  luminor:
+    source_schema: luminor_source.yaml
+    mapping: luminor_to_intermediate.yaml
+    sample_files:
+      - "data/samples/transactions/luminor_sample_ee.csv"
 
 # Target system configurations
 target_converters:

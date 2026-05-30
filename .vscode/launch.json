@@ -4,26 +4,26 @@
         {
             "name": "Run  (financial transactions)",
             "type": "debugpy",
-        
+            "python": "${workspaceFolder}/venv/bin/python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/main.py", 
+            "program": "${workspaceFolder}/src/main.py",
             "args": [
-                "--input-dir",
-                "data/transactions",
+                // "--input-dir",
+                // "data/transactions",
                 "--config",
                 "config/config.yaml"
             ],
             "console": "integratedTerminal",
-        }, 
+        },
         {
             "name": "Run tests (financial transactions)",
             "type": "debugpy",
-        
+            "python": "${workspaceFolder}/venv/bin/python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/main.py", 
+            "program": "${workspaceFolder}/src/main.py",
             "args": [
-                "--input-dir",
-                "data/samples/transactions",
+                // "--input-dir",
+                // "data/samples/transactions",
                 "--config",
                 "config/config_test.yaml"
             ],

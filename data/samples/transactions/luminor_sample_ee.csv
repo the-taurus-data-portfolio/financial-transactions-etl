@@ -1,0 +1,4 @@
+Konto;Dokumendi number;Väärtuspäev;Saaja/maksja konto;Saaja/maksja nimi;Deebet/krediit;Summa;Viitenumber;Arhiveerimiskood;Makse andmed;Valuuta;Registrikood/isikukood;
+EE000000000000084899;;02.04.2026;;Luminor Bank AS;D;"2,50";;B00000001;"Teenustasu: Arvelduspaketi Luminor Debit kuutasu. Periood 03.2026";EUR;;
+EE000000000000084899;DOC00000001;22.05.2026;EE000000000000000001;JOHN DOE;C;"150,00";;B00000002;"Ülekanne enda kontode vahel";EUR;;
+EE000000000000084899;;25.05.2026;;SAMPLE MERCHANT;D;"10,00";;B00000003;"Kaart:408885******0000. Omanik: JOHN DOE. Ost - SAMPLE MERCHANT - kuupäev 22.05.2026";EUR;;

@@ -1,0 +1,81 @@
+# schemas/luminor_source.yaml
+schema_name: "Luminor Estonia Source CSV Schema"
+description: "Schema for Luminor Estonia CSV export files"
+file_details:
+  delimiter: ";"
+  decimal_separator: ","
+  date_format: "DD.MM.YYYY"
+  encoding: "utf-8"
+
+fields:
+  - name: "Konto"
+    alias: "BudgetAccountNumber"
+    type: "string"
+    description: "Customer's account number (IBAN)"
+    required: true
+
+  - name: "Dokumendi number"
+    alias: "DocumentNumber"
+    type: "string"
+    description: "Document number (empty for card transactions and service fees)"
+    required: false
+
+  - name: "Väärtuspäev"
+    alias: "TransactionDate"
+    type: "string"
+    description: "Value date in DD.MM.YYYY format"
+    required: true
+
+  - name: "Saaja/maksja konto"
+    alias: "OtherAccountNumber"
+    type: "string"
+    description: "Counterparty account number (empty for card transactions)"
+    required: false
+
+  - name: "Saaja/maksja nimi"
+    alias: "OtherAccountName"
+    type: "string"
+    description: "Counterparty or merchant name"
+    required: false
+
+  - name: "Deebet/krediit"
+    alias: "DebitCredit"
+    type: "string"
+    description: "Debit (D) or Credit (C) indicator"
+    required: true
+
+  - name: "Summa"
+    alias: "Amount"
+    type: "string"
+    description: "Transaction amount with comma as decimal separator, quoted in raw file"
+    required: true
+
+  - name: "Viitenumber"
+    alias: "ReferenceNumber"
+    type: "string"
+    description: "Reference number for the transaction"
+    required: false
+
+  - name: "Arhiveerimiskood"
+    alias: "TransactionID"
+    type: "string"
+    description: "Unique transaction archive code"
+    required: false
+
+  - name: "Makse andmed"
+    alias: "Description"
+    type: "string"
+    description: "Payment description / transaction details"
+    required: false
+
+  - name: "Valuuta"
+    alias: "Currency"
+    type: "string"
+    description: "Currency code (e.g., EUR)"
+    required: true
+
+  - name: "Registrikood/isikukood"
+    alias: "PersonOrRegistrationCode"
+    type: "string"
+    description: "Personal or registration ID of the account owner — not mapped to intermediate"
+    required: false

@@ -15,3 +15,7 @@ accounts:
     account_anonymized_iban: "EE***00004"
     bank: "Swedbank"
     tiller_account_id: "manual:00000000-0000-0000-0000-000000000004"
+  - account_name: "Test account (Luminor)"
+    account_anonymized_iban: "EE***00005"
+    bank: "Luminor"
+    tiller_account_id: "manual:00000000-0000-0000-0000-000000000005"
