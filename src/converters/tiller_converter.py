@@ -76,6 +76,8 @@ class TillerConverter(TargetConverter, LoggerMixin):
                 self.accounts_config = {'accounts': []}
                 return
 
+            # Direct yaml.safe_load: accounts.yaml is not a schema/mapping file,
+            # so schema_loader (which resolves schema/mapping paths) is not appropriate here.
             with open(config_path, 'r', encoding='utf-8') as file:
                 self.accounts_config = yaml.safe_load(file)
             self.logger.info(f"Loaded accounts configuration from {config_path}")
@@ -412,7 +414,8 @@ class TillerConverter(TargetConverter, LoggerMixin):
             # Load dynamically if not in cache
             try:
                 self.logger.debug(f"Loading accounts config dynamically from {accounts_config_file}")
-                loaded_config = self.schema_loader.load_config_file(accounts_config_file)
+                with open(accounts_config_file, 'r', encoding='utf-8') as f:
+                    loaded_config = yaml.safe_load(f)
                 self._loaded_accounts_configs[accounts_config_file] = loaded_config
                 return loaded_config.get('accounts', [])
             except FileNotFoundError:

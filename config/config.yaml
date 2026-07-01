@@ -86,6 +86,12 @@ source_converters:
     mapping: luminor_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/luminor_sample_ee.csv"
+  citadele:
+    source_schema: citadele_source.yaml
+    mapping: citadele_to_intermediate.yaml
+    detection_header_row: 3
+    sample_files:
+      - "data/samples/transactions/citadele_sample_ee.csv"
 
 # Target system configurations
 target_converters:

@@ -15,6 +15,7 @@ from core.config_manager import ConfigManager
 from core.schema_loader import YamlSchemaLoader
 from converters.target_converter_manager import TargetConverterManager
 from converters.generic_source_converter import GenericSourceConverter
+from converters.citadele_source_converter import CitadeleSourceConverter
 from utils.logging_config import setup_logging
 from converters.bank_detector import BankDetector
 from core.source_providers import SourceProviderFactory
@@ -34,6 +35,10 @@ class ETLPipeline:
     - Output generation (file and console)
     - Optional: Copying to clipboard and archiving via SourceArchiver
     """
+
+    _CONVERTER_MAP = {
+        'citadele': CitadeleSourceConverter,
+    }
 
     def __init__(self, config_path: str):
         """
@@ -68,13 +73,16 @@ class ETLPipeline:
             )
 
             # Initialize target converter manager
+            self.logger.info("Initializing target converters...")
             self.target_converter_manager = TargetConverterManager(self.config, self.schema_loader, self.logger)
             self.target_converter_manager.initialize_converters()
 
             # Initialize bank detector for header-based bank detection
+            self.logger.info("Loading bank header signatures...")
             self.bank_detector = BankDetector(self.config, self.logger)
 
             # Initialize source provider
+            self.logger.info("Initializing source provider...")
             self.source_provider = SourceProviderFactory.create(self.config, self.logger)
 
             # Initialize archiver
@@ -169,9 +177,10 @@ class ETLPipeline:
         # Get primary sample file
         primary_sample_file = self.bank_detector.get_primary_sample_file(detected_bank_type)
 
-        # Initialize converter
+        # Initialize converter — bank-specific subclass when available
         try:
-            source_converter = GenericSourceConverter(
+            converter_cls = self._CONVERTER_MAP.get(detected_bank_type, GenericSourceConverter)
+            source_converter = converter_cls(
                 schema_loader=self.schema_loader,
                 bank_type=detected_bank_type,
                 source_schema_name=source_schema_name,
@@ -312,6 +321,7 @@ class ETLPipeline:
 
             # Save outputs
             if len(successful_identifiers) > 0:
+                self.logger.info(f"Saving outputs for {len(successful_identifiers)} file(s)...")
                 self.save_outputs(all_results)
 
             # Summary

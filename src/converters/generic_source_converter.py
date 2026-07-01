@@ -94,12 +94,20 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
         file_details = self.source_schema.get('file_details', {})
         delimiter = file_details.get('delimiter', ';')
         encoding = file_details.get('encoding', 'utf-8')
+        skip_header_rows = file_details.get('skip_header_rows', 0)
 
         try:
-            # Ensure we are at the start of the buffer
+            header_columns = self.extract_header(file_content)
+            # Ensure we are at the start of the buffer after extract_header
             file_content.seek(0)
-            df = pd.read_csv(file_content, delimiter=delimiter, encoding=encoding, keep_default_na=False)
+            df = pd.read_csv(
+                file_content, delimiter=delimiter, encoding=encoding,
+                keep_default_na=False, skiprows=skip_header_rows
+            )
             self.logger.info(f"Loaded {len(df)} rows from buffer")
+
+            for col_name, col_value in header_columns.items():
+                df[col_name] = col_value
 
             # Normalize column names if this file matched a non-primary sample
             if self.column_rename_map:
@@ -150,6 +158,8 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
                     filtered_df = filtered_df[~filtered_df[field].isin(value)]
                 else:
                     self.logger.warning(f"Filter value for 'not_in' operator must be a list: {value}")
+            elif operator == 'not_empty':
+                filtered_df = filtered_df[filtered_df[field].astype(str).str.strip() != ""]
             else:
                 self.logger.warning(f"Unsupported filter operator: {operator}")
 
@@ -246,6 +256,9 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
                             self.logger.warning(f"Field '{field_for_sign}' for sign application not found. Amounts will not be signed.")
                 return result_series
 
+            elif transform_type == 'direct_float':
+                return series.apply(lambda x: parse_amount(str(x) if pd.notna(x) else ''))
+
             elif transform_type == 'prefix_string':
                 prefix = transformation.get('prefix', '')
                 return series.apply(lambda x: prefix_string(str(x) if pd.notna(x) else '', prefix))
@@ -296,6 +309,7 @@ class GenericSourceConverter(SourceConverter, LoggerMixin):
                 return pd.DataFrame()
 
             result_df = self.transform_to_intermediate(filtered_df)
+            result_df = self.post_process(result_df, filtered_df)
 
             return result_df
 

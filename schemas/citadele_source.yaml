@@ -1,0 +1,52 @@
+# schemas/citadele_source.yaml
+schema_name: "Citadele Estonia Source CSV Schema"
+description: "Schema for Citadele Estonia CSV export files"
+file_details:
+  delimiter: "|"
+  decimal_separator: "."
+  date_format: "DD.MM.YYYY"
+  encoding: "utf-8"
+  skip_header_rows: 3
+
+fields:
+  - name: "Date"
+    alias: "TransactionDate"
+    type: "string"
+    description: "Transaction date in DD.MM.YYYY format"
+    required: true
+
+  - name: "Type"
+    alias: "TransactionType"
+    type: "string"
+    description: "Transaction type (PURCHASE, OUTWARD TRANSFER, INWARD TRANSFER, INWARD INSTANT PAYMENT)"
+    required: false
+
+  - name: "Narrative"
+    alias: "Description"
+    type: "string"
+    description: "Transaction narrative / description"
+    required: false
+
+  - name: "Payment No."
+    alias: "PaymentNo"
+    type: "string"
+    description: "Payment number (often empty)"
+    required: false
+
+  - name: "Bank Reference"
+    alias: "TransactionID"
+    type: "string"
+    description: "Bank reference — unique transaction identifier"
+    required: false
+
+  - name: "Reference number"
+    alias: "ReferenceNumber"
+    type: "string"
+    description: "Reference number"
+    required: false
+
+  - name: "Amount DR/Amount CR"
+    alias: "Amount"
+    type: "string"
+    description: "Signed decimal amount (e.g. -7.20, 100.00) — dot as decimal separator"
+    required: true

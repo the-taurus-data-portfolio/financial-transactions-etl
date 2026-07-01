@@ -306,6 +306,8 @@ Sample CSV files in `data/samples/transactions/` are used for bank detection and
 - `swedbank_sample_ru.csv` - Swedbank (Russian) - tests language detection
 - `seb_sample_ee.csv` - SEB (Estonian)
 - `lhv_sample_ee.csv` - LHV (Estonian)
+- `luminor_sample_ee.csv` - Luminor (Estonian)
+- `citadele_sample_ee.csv` - Citadele (Estonian) — includes 3-row file metadata prefix
 
 ### Quick Test
 
@@ -393,6 +395,8 @@ Currently supported (all with automatic header-based detection):
 - **Swedbank Estonia**: Full support with schema and mappings (Estonian and Russian language headers)
 - **SEB Estonia**: Full support with schema and mappings
 - **LHV Estonia**: Full support for both modern (16-column) and legacy (19-column) CSV formats
+- **Luminor Estonia**: Full support with schema and mappings
+- **Citadele Estonia**: Full support — pipe-delimited format with 3-row metadata prefix; IBAN and currency extracted from file header
 
 The pipeline automatically detects which bank a CSV file belongs to by analyzing its headers.
 

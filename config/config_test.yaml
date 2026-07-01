@@ -33,16 +33,17 @@ processing:
   copy_to_clipboard: true
 
 # Source configuration
+# type: local — intentional for test config; uses sample files instead of GDrive
 source:
-  type: "gdrive"
+  type: "local"
   local:
-    input_dir: "data/test_input"
+    input_dir: "data/samples/transactions"
   gdrive:
     input_folder_id: "1s6Nw0fk70nwsRkcJnwXIqOQYyBkOxvrU"
 
 # Archiving configuration
 archiving:
-  enabled: true
+  enabled: false
   type: "gdrive"
   local:
     archive_dir: "data/archive"
@@ -86,6 +87,12 @@ source_converters:
     mapping: luminor_to_intermediate.yaml
     sample_files:
       - "data/samples/transactions/luminor_sample_ee.csv"
+  citadele:
+    source_schema: citadele_source.yaml
+    mapping: citadele_to_intermediate.yaml
+    detection_header_row: 3
+    sample_files:
+      - "data/samples/transactions/citadele_sample_ee.csv"
 
 # Target system configurations
 target_converters:

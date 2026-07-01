@@ -19,3 +19,7 @@ accounts:
     account_anonymized_iban: "EE***00005"
     bank: "Luminor"
     tiller_account_id: "manual:00000000-0000-0000-0000-000000000005"
+  - account_name: "Test account (Citadele)"
+    account_anonymized_iban: "EE***00006"
+    bank: "Citadele"
+    tiller_account_id: "manual:00000000-0000-0000-0000-000000000006"

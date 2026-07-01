@@ -26,7 +26,8 @@ class BankDetector:
         """
         self.config = config
         self.logger = logger or logging.getLogger(__name__)
-        self.bank_header_signatures = {}  # Dict mapping header tuples to bank types
+        # {detection_skip_rows: {header_tuple: bank_type}}
+        self._signatures_by_skip: Dict[int, Dict[tuple, str]] = {}
 
         self._load_bank_header_signatures()
 
@@ -39,6 +40,7 @@ class BankDetector:
                 return
 
             for bank_type, config_params in source_converters_config.items():
+                detection_skip_rows = config_params.get('detection_header_row', 0)
                 sample_files = config_params.get('sample_files', [])
                 if not sample_files:
                     self.logger.warning(
@@ -56,13 +58,17 @@ class BankDetector:
                             )
                             continue
 
-                        header_row = csv_utils.read_csv_header(file_path, self.logger)
+                        header_row = csv_utils.read_csv_header(
+                            file_path, self.logger, skip_rows=detection_skip_rows
+                        )
                         if header_row:
                             header_tuple = tuple(header_row)
-                            self.bank_header_signatures[header_tuple] = bank_type
+                            if detection_skip_rows not in self._signatures_by_skip:
+                                self._signatures_by_skip[detection_skip_rows] = {}
+                            self._signatures_by_skip[detection_skip_rows][header_tuple] = bank_type
                             self.logger.debug(
                                 f"Loaded header signature for bank '{bank_type}' "
-                                f"from {file_path.name}"
+                                f"from {file_path.name} (detection_skip_rows={detection_skip_rows})"
                             )
 
                     except Exception as e:
@@ -71,10 +77,10 @@ class BankDetector:
                         )
                         continue
 
-            if self.bank_header_signatures:
+            total_signatures = sum(len(sigs) for sigs in self._signatures_by_skip.values())
+            if self._signatures_by_skip:
                 self.logger.info(
-                    f"Loaded {len(self.bank_header_signatures)} header signatures "
-                    f"for bank detection"
+                    f"Loaded {total_signatures} header signatures for bank detection"
                 )
             else:
                 self.logger.warning("No header signatures loaded. Bank detection may fail.")
@@ -93,29 +99,26 @@ class BankDetector:
             Tuple of (detected_bank_type, matched_sample_file_path) or (None, None) if detection fails
         """
         try:
-            if not self.bank_header_signatures:
+            if not self._signatures_by_skip:
                 self.logger.warning("No bank header signatures loaded for detection")
                 return None, None
 
-            header_row = csv_utils.read_csv_header(source, self.logger)
-            if not header_row:
-                name = source.name if isinstance(source, Path) else "buffer"
-                self.logger.warning(f"Could not read CSV header from {name}")
-                return None, None
-
-            header_tuple = tuple(header_row)
-
-            if header_tuple in self.bank_header_signatures:
-                bank_type = self.bank_header_signatures[header_tuple]
-                # Find which sample file this header came from
-                matched_sample = self._find_sample_for_bank(bank_type, header_tuple)
-                name = source.name if isinstance(source, Path) else "buffer"
-                self.logger.debug(
-                    f"Detected bank type '{bank_type}' for {name} via header matching"
-                )
-                return bank_type, matched_sample
-
             name = source.name if isinstance(source, Path) else "buffer"
+
+            for skip_rows, signatures in sorted(self._signatures_by_skip.items()):
+                header_row = csv_utils.read_csv_header(source, self.logger, skip_rows=skip_rows)
+                if not header_row:
+                    continue
+                header_tuple = tuple(header_row)
+                if header_tuple in signatures:
+                    bank_type = signatures[header_tuple]
+                    matched_sample = self._find_sample_for_bank(bank_type, header_tuple)
+                    self.logger.debug(
+                        f"Detected bank type '{bank_type}' for {name} "
+                        f"via header matching (skip_rows={skip_rows})"
+                    )
+                    return bank_type, matched_sample
+
             self.logger.warning(
                 f"Could not auto-detect bank type for {name}. "
                 "Header does not match any known signatures."
@@ -132,9 +135,10 @@ class BankDetector:
         source_converters_config = self.config.get('source_converters', {})
         config = source_converters_config.get(bank_type, {})
         sample_files = config.get('sample_files', [])
+        skip_rows = config.get('detection_header_row', 0)
 
         for sample_file in sample_files:
-            sample_header = csv_utils.read_csv_header(Path(sample_file), self.logger)
+            sample_header = csv_utils.read_csv_header(Path(sample_file), self.logger, skip_rows=skip_rows)
             if sample_header and tuple(sample_header) == header_tuple:
                 return sample_file
 

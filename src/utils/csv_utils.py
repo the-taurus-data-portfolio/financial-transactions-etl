@@ -10,15 +10,21 @@ import io
 import pyperclip
 
 
-def read_csv_header(source: Union[Path, io.BytesIO], logger: Optional[logging.Logger] = None) -> Optional[List[str]]:
+def read_csv_header(
+    source: Union[Path, io.BytesIO],
+    logger: Optional[logging.Logger] = None,
+    skip_rows: int = 0,
+) -> Optional[List[str]]:
     """
     Read CSV header row from a file path or buffer, auto-detecting delimiter.
 
-    Tries delimiters in order: semicolon, comma, tab.
+    Tries delimiters in order: semicolon, comma, tab, pipe.
 
     Args:
         source: Path to CSV file or BytesIO buffer
         logger: Optional logger instance for debug messages
+        skip_rows: Number of leading rows to skip before reading the header.
+                   Used for files with metadata rows before column headers (e.g. Citadele).
 
     Returns:
         List of header column names or None if reading fails
@@ -28,13 +34,13 @@ def read_csv_header(source: Union[Path, io.BytesIO], logger: Optional[logging.Lo
     try:
         if isinstance(source, Path):
             with open(source, 'r', encoding='utf-8') as f:
-                return _read_header_from_file_object(f, logger)
+                return _read_header_from_file_object(f, logger, skip_rows)
         else:
             # Handle BytesIO
             source.seek(0)
             # Use TextIOWrapper to read BytesIO as text
             wrapper = io.TextIOWrapper(source, encoding='utf-8', newline='')
-            header = _read_header_from_file_object(wrapper, logger)
+            header = _read_header_from_file_object(wrapper, logger, skip_rows)
             # Detach to prevent wrapper from closing the underlying buffer
             wrapper.detach()
             return header
@@ -43,14 +49,16 @@ def read_csv_header(source: Union[Path, io.BytesIO], logger: Optional[logging.Lo
         return None
 
 
-def _read_header_from_file_object(f, logger):
+def _read_header_from_file_object(f, logger, skip_rows: int = 0):
     """Internal helper to read header from a file-like object."""
-    for delimiter in [';', ',', '\t']:
+    for delimiter in [';', ',', '\t', '|']:
         f.seek(0)
         try:
             reader = csv.reader(f, delimiter=delimiter)
+            for _ in range(skip_rows):
+                next(reader, None)
             header_row = next(reader, None)
-            if header_row:
+            if header_row and len(header_row) > 1:
                 return [col.strip().strip('"') for col in header_row]
         except Exception:
             continue
@@ -90,7 +98,7 @@ def detect_csv_delimiter(source: Union[Path, io.BytesIO], logger: Optional[loggi
 
 def _detect_delimiter_from_file_object(f, logger):
     """Internal helper to detect delimiter from a file-like object."""
-    for delimiter in [';', ',', '\t']:
+    for delimiter in [';', ',', '\t', '|']:
         f.seek(0)
         try:
             reader = csv.reader(f, delimiter=delimiter)

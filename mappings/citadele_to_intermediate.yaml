@@ -1,0 +1,56 @@
+# mappings/citadele_to_intermediate.yaml
+mapping_name: "Citadele Bank Source to Intermediate Mapping"
+description: "Rules for transforming Citadele bank CSV data into the universal intermediate transaction format."
+source_schema: "citadele_source.yaml"
+target_schema: "intermediate.yaml"
+
+filters:
+  - field: "Date"
+    operator: "not_empty"
+    notes: "Remove footer rows that have an empty Date column (closing balance rows, etc.)."
+
+field_mappings:
+  - source_field: "Date"
+    target_field: "TransactionDate"
+    transformation:
+      type: "direct_copy"
+      notes: "Date format DD.MM.YYYY remains unchanged at this stage."
+
+  - source_field: "Amount DR/Amount CR"
+    target_field: "Amount"
+    transformation:
+      type: "direct_float"
+      notes: "Amount is already a signed decimal string (e.g. -7.20). Parse directly without sign manipulation."
+
+  - source_field: "Narrative"
+    target_field: "Description"
+    transformation:
+      type: "string_clean"
+      notes: "Clean whitespace. OtherAccountName will be extracted from Description by CitadeleSourceConverter.post_process()."
+
+  - source_field: "Bank Reference"
+    target_field: "TransactionID"
+    transformation:
+      type: "prefix_string"
+      prefix: "CT"
+      notes: "Prefix with 'CT' for Citadele bank transactions."
+
+  - source_field: "AccountIBAN"
+    target_field: "BudgetAccountNumber"
+    transformation:
+      type: "anonymize_iban"
+      rules:
+        - action: "keep_country_prefix"
+          length: 2
+        - action: "keep_last_n_digits"
+          n: 5
+        - action: "replace_middle_with"
+          character: "*"
+          count: 3
+      notes: "AccountIBAN is a virtual column injected by CitadeleSourceConverter.extract_header()."
+
+  - source_field: "Currency"
+    target_field: "Currency"
+    transformation:
+      type: "direct_copy"
+      notes: "Currency is a virtual column injected by CitadeleSourceConverter.extract_header()."

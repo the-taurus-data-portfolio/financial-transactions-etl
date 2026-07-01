@@ -109,6 +109,35 @@ class SourceConverter(ABC):
         """
         pass
 
+    def extract_header(self, file_content: io.BytesIO) -> Dict[str, Any]:
+        """
+        Extract metadata from file header rows before the main CSV parse.
+
+        Subclasses override this to read bank-specific header rows (e.g. IBAN,
+        currency). The returned dict is injected as constant columns into the
+        loaded DataFrame. Default: no-op, returns empty dict.
+        """
+        return {}
+
+    def extract_footer(self, file_content: io.BytesIO) -> Dict[str, Any]:
+        """
+        Extract metadata from file footer rows after the main CSV parse.
+
+        Reserved for future use (e.g. closing balances). Default: no-op.
+        """
+        return {}
+
+    def post_process(self, intermediate_df: pd.DataFrame, source_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply post-processing after standard field mapping.
+
+        Subclasses override this to populate fields that cannot be expressed as
+        simple YAML mappings (e.g. extracting OtherAccountName from Narrative).
+        Receives both DataFrames so any source column is accessible even if not
+        mapped to the intermediate schema. Default: no-op, returns intermediate_df.
+        """
+        return intermediate_df
+
     @abstractmethod
     def save_output(self, df: pd.DataFrame, config) -> None:
         """
