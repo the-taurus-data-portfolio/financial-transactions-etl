@@ -78,7 +78,9 @@ class CitadeleSourceConverter(GenericSourceConverter):
             description = str(result.at[idx, 'Description'])
 
             if row_type == 'PURCHASE':
-                desc, name = self._process_purchase(description)
+                desc, name, card_date = self._process_purchase(description)
+                if card_date:
+                    result.at[idx, 'TransactionDate'] = card_date
             elif row_type in self._TRANSFER_TYPES:
                 desc, name = self._process_transfer(description)
             else:
@@ -114,14 +116,17 @@ class CitadeleSourceConverter(GenericSourceConverter):
 
         return description, name
 
-    def _process_purchase(self, text: str) -> Tuple[str, str]:
-        """Strip card metadata tokens from a purchase narrative; build Description with card date."""
+    def _process_purchase(self, text: str) -> Tuple[str, str, str]:
+        """Strip card metadata tokens from a purchase narrative; extract merchant name and card date.
+
+        Returns (description, name, card_date) where card_date is DD.MM.YYYY or '' if not found.
+        """
         text = self._END_TO_END_RE.sub('', text).strip()
 
         card_date = ''
         m = self._CARD_DATE_RE.match(text)
         if m:
-            card_date = m.group(1)
+            card_date = m.group(1).replace('/', '.')
             text = text[m.end():]
 
         text = self._MASKED_CARD_RE.sub('', text).strip()
@@ -130,6 +135,4 @@ class CitadeleSourceConverter(GenericSourceConverter):
         text = re.sub(r'\s+', ' ', text).strip()
 
         name = text
-        description = f"{card_date}: {name}" if card_date else name
-
-        return description, name
+        return name, name, card_date

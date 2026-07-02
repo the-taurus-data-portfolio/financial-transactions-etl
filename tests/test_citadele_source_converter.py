@@ -176,7 +176,7 @@ class TestPostProcessTransfer:
 # ---------------------------------------------------------------------------
 
 class TestPostProcessPurchase:
-    def test_extracts_card_date_and_merchant(self):
+    def test_card_date_moves_to_transaction_date_and_merchant_to_description(self):
         converter = _make_converter()
         narrative = (
             '15/06/2026 123456******7890 MCC-5411 REF: 9999999 '
@@ -185,8 +185,10 @@ class TestPostProcessPurchase:
         source_df = pd.DataFrame({'Type': ['PURCHASE']}, index=[0])
         result = converter.post_process(_intermediate_row(narrative), source_df)
 
-        assert result.at[0, 'Description'].startswith('15/06/2026:')
+        assert result.at[0, 'TransactionDate'] == '15.06.2026'
+        assert '15/06/2026' not in result.at[0, 'Description']
         assert 'SAMPLE GROCERY' in result.at[0, 'OtherAccountName']
+        assert result.at[0, 'Description'] == result.at[0, 'OtherAccountName']
 
     def test_strips_masked_card_number(self):
         converter = _make_converter()
@@ -207,13 +209,15 @@ class TestPostProcessPurchase:
         assert 'REF:' not in result.at[0, 'OtherAccountName']
         assert result.at[0, 'OtherAccountName'] == 'MY SHOP'
 
-    def test_description_format_is_date_colon_merchant(self):
+    def test_description_equals_merchant_name_without_date(self):
         converter = _make_converter()
         narrative = '25/12/2025 000000******9999 MCC-5812 REF: 12345 RESTAURANT ABC'
         source_df = pd.DataFrame({'Type': ['PURCHASE']}, index=[0])
         result = converter.post_process(_intermediate_row(narrative), source_df)
 
-        assert result.at[0, 'Description'] == '25/12/2025: RESTAURANT ABC'
+        assert result.at[0, 'TransactionDate'] == '25.12.2025'
+        assert result.at[0, 'Description'] == 'RESTAURANT ABC'
+        assert '25/12/2025' not in result.at[0, 'Description']
 
 
 # ---------------------------------------------------------------------------
