@@ -1,5 +1,60 @@
 # Progress Log
 
+## Session: 2026-10-10 — First financial review (statements → Tiller → receipt categorisation)
+
+### Completed
+- Imported 3 statements (period 22.09–10.10.2026): LHV (1) + Swedbank (2). Swedbank files were renamed to
+  `Swedbank_<IBAN>_<period>.csv` so they do not overwrite archived files with the same name `statement (N).csv`
+- Service run: 3/3 files, 40 new transactions, 55 duplicates skipped, files archived
+- Inserted 40 rows + 1 empty separator row at the top of Tiller `Table1` via `google-spreadsheets insert`
+- Matched `Needs Clarification` rows against GDrive receipts and proposed categories; user updated the sheet
+- Added `config/google-spreadsheets.yaml` (tool config) and `config/local/resources.yaml`
+  (private Google IDs, git-ignored via new `.gitignore` entry `config/local/`)
+- Wrote runbook `docs/how-to-financial-review.md`, indexed in `Agents.md`
+
+### Known issues / pending items
+- **Accepted, not fixed:** LHV interest + income tax share one `Transaction ID` (`LH…`), inserted as-is
+- **Bank data issue, won't fix:** Swedbank sometimes sends a truncated `Saaja/Maksja` (only the address tail)
+- **Local archiver:** silently overwrites same-name files (`add_timestamp: false`); worked around by renaming
+- **Committed Tiller spreadsheet ID:** still in `config/config.yaml` / `config_test.yaml` (dedup section)
+- **Receipt without a transaction yet:** XS Mänguasjad receipt from 09.10 (−13.68) will appear in the next statement
+
+---
+
+## Next Session
+- Next financial review: follow `docs/how-to-financial-review.md`
+
+---
+
+## Session: 2026-07-02 — Citadele CR fixes + runtime bug fixes
+
+### Completed
+- **CR Finding 1**: Fixed `_find_sample_for_bank` — now passes `detection_header_row` as `skip_rows` to `read_csv_header` (was always 0, causing Citadele sample to never match)
+- **CR Finding 2**: Added comment in `config/config_test.yaml` explaining `source.type: local` is intentional
+- **CR Finding 3**: Deleted spurious `=7.0.0` file from repo root (shell paste accident)
+- **CR Finding 4**: Added trailing newline to `config/tiller/accounts_sample.yaml`
+- **CR Finding 5**: Added `test_three_word_org_name_extracts_last_two_words` — pins known limitation (only last 2 words become OtherAccountName for transfers)
+- **CR Feedback F1**: Moved `_CONVERTER_MAP` from method body to `ETLPipeline` class-level constant
+- **CR Feedback F2**: Added comment in `tiller_converter.py` explaining `yaml.safe_load` bypass
+- **CR Feedback F3**: Updated `docs/how-to-add-bank.md` — `header_extractions` marked "not yet implemented"; users directed to `extract_header()` override
+- **Runtime bug — Duplicate TransactionID**: Two "Value Date" rows (CREDIT INTEREST + WITHHOLDING TAX) sharing same Bank Reference now get `-1`/`-2` suffixes in `post_process`; 2 new tests added
+- **Runtime bug — Purchase date**: `TransactionDate` for PURCHASE rows now uses card swipe date from Narrative (e.g. `13.06.2026`) instead of batch settlement date (e.g. `17.06.2026`); `Description` = merchant name only (date prefix removed)
+- Registered bug report: `docs/bugs/fixed/BUG-citadele-purchase-date-wrong.md`
+- `REVIEW-citadele.md` marked ADDRESSED and moved to `docs/reviews/addressed/`
+- Full test suite: **35/35 passing**
+
+### Known issues / pending items
+- Name order inconsistency in transfers (`ANDREI ROBINSKI` vs `ROBINSKI ANDREI`) — ACCEPTED, will not fix
+- `OtherAccountName` for "Value Date" rows (CREDIT INTEREST / WITHHOLDING TAX) is empty — confirmed correct (no counterparty), NaN not written as string
+
+---
+
+## Next Session
+- Run pipeline on real Citadele file and paste output into Tiller (dedup will catch anything already imported)
+- No outstanding bugs or CR items
+
+---
+
 ## Session: 2026-07-01 — Citadele implementation: Code Done + bug fixes + real-file validation
 
 ### Completed

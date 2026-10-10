@@ -1,0 +1,17 @@
+# google-spreadsheets tool config for financial-transactions-etl.
+# Usage (run from the service root):
+#   google-spreadsheets --config config/google-spreadsheets.yaml \
+#     -c config/credentials/test-spreadsheet-credentials.json --task <task> ...
+#
+# NOTE: the tool resolves only `output.format` / `logging.verbose` from YAML.
+# Credentials (-c/--creds), spreadsheet (--parent-id) and table (--id) are
+# CLI-only: take them from config/local/resources.yaml (git-ignored).
+
+output:
+  format: "json"
+
+logging:
+  verbose: false
+
+google_spreadsheets:
+  timeout: 30
