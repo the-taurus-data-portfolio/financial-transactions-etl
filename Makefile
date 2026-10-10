@@ -21,7 +21,7 @@ run:
 	@if [ -z "$(INPUT_DIR)" ]; then \
        echo "Please specify INPUT_DIR. Example: make run INPUT_DIR=./data"; \
     else \
-       ./$(VENV_NAME)/bin/python -m src.main --input-dir $(INPUT_DIR); \
+       ./$(VENV_NAME)/bin/python src/main.py --input-dir $(INPUT_DIR); \
     fi
 
 test:
