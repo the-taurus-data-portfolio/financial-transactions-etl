@@ -2,6 +2,27 @@
 
 <!-- IMPORTANT: Always add the newest feedback/session entry at the TOP of the file (immediately below this comment). Do not append to the bottom. -->
 
+## Session: 2026-07-02 — CR fixes + runtime bug fixes
+
+### 1. Implementation Issues
+
+**`_find_sample_for_bank` silently returned `None` for all skip_rows > 0 banks (fixed):**
+`_find_sample_for_bank` called `read_csv_header` without `skip_rows`, so for Citadele (skip=3) it always read the metadata row and the comparison with `header_tuple` always failed. The method returned `None` silently — harmless for single-sample banks but a logical defect. Fixed by reading `detection_header_row` from config and passing it as `skip_rows`.
+
+**Purchase `TransactionDate` used settlement date, not card swipe date (fixed):**
+Citadele batch-posts purchases days after the card swipe. The `Date` column in source CSV reflects the settlement date. The actual card date is embedded in the Narrative (`DD/MM/YYYY` prefix). The original design stored it in `Description` as `DD/MM/YYYY: <merchant>` but never updated `TransactionDate`. Fixed: card date now overwrites `TransactionDate` in `post_process`; `Description` = merchant name only.
+
+**`_CONVERTER_MAP` rebuilt on every `process_single_file` call (fixed):**
+Dict literal was inside the method body, allocating and garbage-collecting on every invocation. Moved to `ETLPipeline._CONVERTER_MAP` class-level constant.
+
+### 3. Proposed Improvements & Backlog Items
+
+- **Backlog (`docs/backlog.md`)**: Add guardrail — archiving should be skipped (or warn loudly) when `input_dir` is inside `data/samples/`. Prevents accidental destruction of sample files.
+- **Backlog**: `header_extractions` YAML key is documented in `how-to-add-bank.md` and `schemas/citadele_source.yaml` (via design doc) but not implemented in `GenericSourceConverter`. Future bank that tries to use it will be silently ignored. Should either be implemented or the schema key removed.
+- **Backlog**: No `Agents.md` in this project — the `code-done.md` checklist references it for the "full verification pipeline" command. Without it, step 1 of code-done is undefined. Create a minimal `Agents.md` to anchor project-level tooling commands.
+
+---
+
 ## Session: 2026-07-01 — Code Done, bug fixes, real-file validation
 
 ### 1. Implementation Issues

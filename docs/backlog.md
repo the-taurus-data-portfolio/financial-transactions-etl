@@ -1,5 +1,7 @@
 1. Add anonymised card number
 
+1. Refactor config: unify `source` and `archiving` under a single top-level `mode` key (e.g. `mode: gdrive`) so switching between local and GDrive doesn't require changing `type` in two separate sections
+
 1. automate making input files (ui automation)
     - configurable accounts
     - don't save if no records

@@ -1,6 +1,7 @@
 # Code Review — Citadele Bank Support
 
 ## Verdict: APPROVED WITH NOTES
+## Status: ADDRESSED — 2026-07-02 (all findings resolved)
 
 ---
 
