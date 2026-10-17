@@ -1,5 +1,29 @@
 # Progress Log
 
+> Since 2026-10-17 the financial review runs as a finance-domain skill (`skill-financial-review`); its review log
+> is kept in the private finance domain. This file records only service-related changes and issues.
+
+## Session: 2026-10-17 — Runbook moved out; service issues seen during reviews
+
+### Completed
+- `docs/how-to-financial-review.md` moved to the finance-domain skill `skill-financial-review`; the file is now a
+  pointer, `Agents.md` Documentation Index updated
+- `Agents.md`: new `## Communication` section (link to `philosophy.md`, mirror the user's language in chat) (2026-10-10)
+- Two review runs (2026-10-10, 2026-10-17): 6 statements from 4 banks processed, all batches 100% successful
+
+### Known issues
+- **Service hangs after archiving** (3 occurrences; likely the clipboard copy) — data and archive are complete,
+  the process has to be stopped
+- **Archive overwrites same-name files** (`add_timestamp: false`): two archived Swedbank CSVs from June 2026 were
+  lost this way (their rows are in Tiller). Luminor always exports `AccountStatement.csv` — same risk
+- Luminor exports use CR-only line endings — parsed correctly
+
+## Next Session
+- Investigate the post-archive hang (clipboard) — bug/backlog item
+- Archiver: suffix/timestamp on name collision instead of overwrite
+
+---
+
 ## Session: 2026-10-10 — First financial review (statements → Tiller → receipt categorisation)
 
 ### Completed
@@ -20,9 +44,6 @@
 - **Receipt without a transaction yet:** XS Mänguasjad receipt from 09.10 (−13.68) will appear in the next statement
 
 ---
-
-## Next Session
-- Next financial review: follow `docs/how-to-financial-review.md`
 
 ---
 

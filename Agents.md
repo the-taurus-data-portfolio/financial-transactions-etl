@@ -11,6 +11,12 @@ ETL pipeline that converts bank transaction CSV exports from multiple Estonian b
 Tiller Money format for Google Sheets import. Supports automatic bank detection, deduplication
 against an existing Tiller sheet, and optional archiving.
 
+## Communication
+Follow [`philosophy.md`](~/ai-agents/agents/docs/philosophy.md) (Communication & Language Standards).
+- **Mirror the user's language in chat**: reply in the language the user writes in (Russian → Russian,
+  English → English). Technical terms and entities stay in English.
+- Documentation artefacts (docs, feedback, progress) are always in English.
+
 ---
 
 ## Entry Points
@@ -178,7 +184,8 @@ Backlog item: migrate from `requirements.txt` + venv to Poetry.
 
 ## Documentation Index
 - [`docs/how-to-add-bank.md`](docs/how-to-add-bank.md) — step-by-step guide for adding a new bank
-- [`docs/how-to-financial-review.md`](docs/how-to-financial-review.md) — recurring review: statements → service → Tiller insert → receipt-based categorisation
+- Financial review (statements → service → Tiller insert → receipt-based categorisation) — finance-domain skill
+  `skill-financial-review` (`~/ai-agents/agents/domains/private/finance/skills/financial-review/SKILL.md`)
 - [`docs/design/`](docs/design/) — bank design documents (`implemented/` and in-progress)
 - [`docs/feedback/`](docs/feedback/) — SWE and other role session feedback (append-top)
 - [`docs/backlog.md`](docs/backlog.md) — outstanding work items
