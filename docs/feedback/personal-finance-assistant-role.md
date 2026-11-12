@@ -2,6 +2,51 @@
 
 <!-- IMPORTANT: Always add the newest feedback/session entry at the TOP of the file (immediately below this comment). Do not append to the bottom. -->
 
+## Session: 2026-11-12 — Review run 5, Tiller column structure
+
+### 2. Interface & Usage Issues
+- 3/3 files processed and archived; the process exited on its own.
+- The Tiller table got 4 new columns in the middle; `schemas/tiller_target.yaml` was updated to the table order and
+  the converter filled them empty without code changes. `make test` 35/35.
+- `regex_extract` is listed in `docs/how-to-add-bank.md` but not implemented: the doc reads as if it exists.
+
+### 3. Proposed Improvements & Backlog Items
+- Backlog (added): fill `Card` / `Payment method` for Swedbank and LHV — draft design
+  `docs/design/DESIGN-card-and-payment-method.md`.
+- Docs: mark `regex_extract` as "planned" in `how-to-add-bank.md` until the design is implemented.
+
+## Session: 2026-11-07 — Review run 4
+
+### 2. Interface & Usage Issues
+- 4/4 files processed, archived, no hang; the documented background run worked as written.
+- The PDF-only account again needed hand-built rows; the user wants only its shop payments in Tiller (no cashback, no
+  own transfers), which a future parser should support as a filter.
+
+### 3. Proposed Improvements & Backlog Items
+- Backlog item for the PDF parser: add the row filter above (keep the composite ids).
+
+## Session: 2026-10-31 — Review run 3
+
+### 2. Interface & Usage Issues
+- 4/4 files processed, no hang this run; the documented background run worked as written.
+- A new bank account type delivers a PDF statement only and no transaction id. Its rows were built by hand in the
+  22-column format with composite ids.
+
+### 3. Proposed Improvements & Backlog Items
+- Backlog: parser for this PDF statement format. It must generate the same composite ids
+  (`manual:LB<YYYYMMDD><C|D><amount in cents, 6 digits>`), or the dedup will not recognise rows inserted by hand.
+
+## Session: 2026-10-24 — Review run 2 (agent-run pipeline)
+
+### 2. Interface & Usage Issues
+- The pipeline finished and exited on its own in 5 s this time (4/4 files); the known hang did not reproduce.
+- Card pre-authorisation + refund (online grocery orders) arrive as two rows; correct, but worth a note in the docs.
+
+### 3. Proposed Improvements & Backlog Items
+- Added to `docs/backlog.md`: a `Receipt` column in the Tiller output (filled by the agent).
+
+---
+
 ## Session: 2026-10-17 — Financial review via `skill-financial-review` (4 banks, 30 rows)
 
 ### 2. Interface & Usage Issues
