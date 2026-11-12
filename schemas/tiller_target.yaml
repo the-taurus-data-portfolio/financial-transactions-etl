@@ -44,6 +44,14 @@ fields:
     type: "string"
     description: "The assigned category for the transaction. Typically filled manually or by Tiller rules."
     nullable: true
+  - name: "Clarified?"
+    type: "string"
+    description: "Checkbox column in Tiller: the transaction was already explained (no new clarification needed). Left empty by the service; set by the financial review."
+    nullable: true
+  - name: "Receipt"
+    type: "string"
+    description: "Hyperlink to the digitized receipt on Google Drive. Left empty by the service; filled by the financial review."
+    nullable: true
   - name: "Account"
     type: "string"
     description: "The user-friendly name of the account in Tiller. Often inferred by Tiller."
@@ -83,6 +91,14 @@ fields:
   - name: "Note"
     type: "string"
     description: "General notes about the transaction."
+    nullable: true
+  - name: "Payment method"
+    type: "string"
+    description: "Card or transfer. Left empty for now (to be mapped from the bank transaction type)."
+    nullable: true
+  - name: "Card"
+    type: "string"
+    description: "Masked card number (last 4 digits only, e.g. '****1234'). Left empty for now."
     nullable: true
   - name: "Tags"
     type: "string"
